@@ -2,7 +2,7 @@
 /**
  * @fileOverview 記事の内容を極めて簡潔に要約するGenkitフロー。
  *
- * - summarizeAggregatedArticleContent - 日本の多忙な読者向けに、一目でわかる要約を生成します。
+ * - summarizeAggregatedArticleContent - 日本の多忙な読者向けに、3つの短い言葉で要約を生成します。
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,15 +29,15 @@ const summarizePrompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: { schema: SummarizeAggregatedArticleContentInputSchema },
   output: { schema: SummarizeAggregatedArticleContentOutputSchema },
-  prompt: `あなたはニュース記事を日本の読者向けに「一目でわかるよう」要約する専門のAIアシスタントです。
+  prompt: `あなたはニュース記事を「一瞬で理解できる」ように要約するAIです。
 
-以下のガイドラインに従って、記事（英語の場合もあります）を日本語で要約してください：
+以下のガイドラインに厳格に従って、記事を日本語で要約してください：
 
 ガイドライン:
-1. 必ず日本語で、3つの短い箇条書き（・）で出力してください。
-2. 1文は20文字〜30文字程度、全体で100文字以内に収めてください。
-3. 専門用語は避け、中学生でもわかる平易な言葉を選んでください。
-4. 最も重要な結論やアクションを優先してください。
+1. 必ず日本語で、3つの短い箇条書き（・）のみで出力してください。
+2. 1文は「最大15文字以内」にしてください。体言止めを推奨します。
+3. 余計な説明は一切省き、最も重要なポイントだけを抜き出してください。
+4. 全体で50文字程度に収めてください。
 
 記事タイトル: {{{title}}}
 記事本文: {{{content}}}`,
