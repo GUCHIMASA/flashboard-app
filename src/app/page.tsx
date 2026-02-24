@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight, Clock, Calendar } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -15,13 +15,15 @@ import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
+  const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
   
   // フィルタリング用の状態
   const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
@@ -164,7 +166,7 @@ export default function Home() {
               {headerTitle}
             </h2>
             
-            {/* ライブインジケーター - スマホでも表示 */}
+            {/* ライブインジケーター */}
             <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[9px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
@@ -200,7 +202,11 @@ export default function Home() {
           {/* ヒーローセクション - カルーセル表示 */}
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
             <section className="relative group">
-              <Carousel className="w-full" opts={{ loop: true }}>
+              <Carousel 
+                className="w-full" 
+                opts={{ loop: true }}
+                plugins={[autoplay.current]}
+              >
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
@@ -215,9 +221,15 @@ export default function Home() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                         
                         <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full max-w-4xl">
-                          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] mb-3 md:mb-4 border border-white/20 text-white">
-                            <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-300" />
-                            注目
+                          <div className="flex items-center gap-3 mb-3 md:mb-4">
+                            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 text-white">
+                              <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-300" />
+                              注目
+                            </div>
+                            <div className="flex items-center gap-1.5 text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+                              <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                              {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
+                            </div>
                           </div>
                           <h1 className="font-headline text-lg xs:text-xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-4 tracking-tight leading-[1.2] text-white line-clamp-2">
                             {article.title}
@@ -266,7 +278,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* スマホで2列表示に設定 */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {filteredArticles.length > 0 ? (
                 filteredArticles.map((article) => (
