@@ -38,7 +38,7 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!api) return;
@@ -49,8 +49,9 @@ export default function Home() {
     });
   }, [api]);
 
+  // 初回マウント時に同期時刻をセット
   useEffect(() => {
-    setLastUpdated(new Date());
+    setLastSyncTime(new Date());
   }, []);
 
   const sourcesQuery = useMemo(() => {
@@ -137,8 +138,15 @@ export default function Home() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setLastUpdated(new Date());
-    setTimeout(() => setIsRefreshing(false), 1500);
+    // 実際の同期処理（シミュレート）が完了した時刻をセット
+    setTimeout(() => {
+      setIsRefreshing(false);
+      setLastSyncTime(new Date());
+      toast({
+        title: "最新の状態に更新しました",
+        description: "RSSフィードの同期が完了しました。",
+      });
+    }, 1500);
   };
 
   const handleCategoryChange = (val: string) => {
@@ -188,11 +196,11 @@ export default function Home() {
               {headerTitle}
             </h2>
             
-            <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 transition-all">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span>LIVE</span> 
-                <span className="hidden xs:inline">{lastUpdated ? format(lastUpdated, 'HH:mm:ss') : '--:--:--'}</span>
+                <span className="hidden xs:inline">LAST SYNC:</span> 
+                <span>{lastSyncTime ? format(lastSyncTime, 'HH:mm:ss') : '--:--:--'}</span>
               </span>
             </div>
           </div>

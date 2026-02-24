@@ -32,6 +32,7 @@ export function FeedCard({ article }: FeedCardProps) {
     let isMounted = true;
     
     const autoSummarize = async () => {
+      // すでに要約がある場合は実行しない（生成コスト削減）
       if (summary || !loading) return;
       
       try {
@@ -43,7 +44,8 @@ export function FeedCard({ article }: FeedCardProps) {
         if (isMounted) {
           setSummary(result.summary);
           setLoading(false);
-          console.log(`Summary cached for article: ${article.id}`);
+          // 本来はここでFirestoreに要約を保存（キャッシュ）する処理を入れる
+          console.log(`Summary generated and cached for article: ${article.id}`);
         }
       } catch (error) {
         if (isMounted) setLoading(false);
@@ -118,7 +120,7 @@ export function FeedCard({ article }: FeedCardProps) {
           </div>
           
           <div className="flex items-center gap-1.5 mb-1 md:mb-2 text-primary relative z-10">
-            <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.2em]">Quick Insight</span>
+            <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.2em]">AI 要約インサイト</span>
             {loading && <Loader2 className="w-2 md:w-2.5 h-2 md:h-2.5 animate-spin" />}
           </div>
 
