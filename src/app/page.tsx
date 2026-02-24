@@ -44,6 +44,7 @@ export default function Home() {
     category: 'Custom' as Category
   }))];
 
+  // ブックマークデータをArticle形式に変換
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
     id: b.id,
     title: b.title,
@@ -52,7 +53,7 @@ export default function Home() {
     sourceName: b.sourceName,
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Reliable',
+    category: 'Reliable', // 表示上のカテゴリ
     link: b.url
   }));
 
@@ -129,6 +130,7 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-6 space-y-8 max-w-7xl mx-auto w-full">
+          {/* ヒーローセクション (タイムラインかつ検索なしの時のみ表示) */}
           {activeCategory === 'All' && !searchQuery && (
             <section className="relative overflow-hidden rounded-3xl bg-primary shadow-2xl shadow-primary/20">
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-accent opacity-90" />
@@ -153,10 +155,12 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
+              {/* 背景の装飾 */}
               <div className="absolute right-0 top-0 h-full w-1/3 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] from-white/10 hidden lg:block" />
             </section>
           )}
 
+          {/* メインフィード */}
           <section>
             <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <Tabs value={activeCategory} onValueChange={(val) => setActiveCategory(val as any)} className="w-full sm:w-auto">
