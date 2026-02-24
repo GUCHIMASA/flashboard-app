@@ -1,10 +1,10 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight, Clock, Calendar } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
+import { AdCard } from '@/components/dashboard/AdCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +29,6 @@ export default function Home() {
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
   
-  // フィルタリング用の状態
   const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
   const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,24 +37,19 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // カルーセルの状態監視
   useEffect(() => {
     if (!api) return;
-
     setCount(api.scrollSnapList().length);
     setCurrent(api.selectedScrollSnap());
-
     api.on("select", () => {
       setCurrent(api.selectedScrollSnap());
     });
   }, [api]);
 
-  // ハイドレーションエラー防止のため、クライアントサイドで初期化
   useEffect(() => {
     setLastUpdated(new Date());
   }, []);
 
-  // Firestoreからカスタムソースを取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -63,7 +57,6 @@ export default function Home() {
 
   const { data: customSources = [] } = useCollection(sourcesQuery);
 
-  // Firestoreからブックマークを取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -71,7 +64,6 @@ export default function Home() {
 
   const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
 
-  // すべてのソースを統合
   const allSources = useMemo(() => [
     ...INITIAL_SOURCES, 
     ...customSources.map(s => ({
@@ -82,7 +74,6 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // ブックマークデータをArticle形式に変換
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
     id: b.id,
     title: b.title,
@@ -98,7 +89,6 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : MOCK_ARTICLES;
 
-  // フィルタリングロジックの統合
   const filteredArticles = useMemo(() => {
     return displayArticles
       .filter(a => {
@@ -117,7 +107,6 @@ export default function Home() {
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
 
-  // ヒーロー用の最新5記事
   const heroArticles = useMemo(() => {
     return MOCK_ARTICLES.slice(0, 5);
   }, []);
@@ -182,11 +171,10 @@ export default function Home() {
               {headerTitle}
             </h2>
             
-            {/* ライブインジケーター */}
             <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[9px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span className="hidden xs:inline">LIVE</span> 
+                <span className="xs:inline">LIVE</span> 
                 <span className="hidden md:inline text-muted-foreground/40">•</span> 
                 {lastUpdated ? format(lastUpdated, 'HH:mm:ss') : '--:--:--'}
               </span>
@@ -215,7 +203,6 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-4 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
-          {/* ヒーローセクション - カルーセル表示 */}
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
             <section className="relative group">
               <Carousel 
@@ -270,7 +257,6 @@ export default function Home() {
                 <CarouselPrevious className="left-4 md:left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
                 <CarouselNext className="right-4 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
                 
-                {/* ページネーションインジケーター */}
                 <div className="absolute bottom-4 right-8 flex gap-1.5 z-10 md:bottom-8 md:right-12">
                   {Array.from({ length: count }).map((_, index) => (
                     <button
@@ -288,7 +274,6 @@ export default function Home() {
             </section>
           )}
 
-          {/* メインフィード */}
           <section>
             <div className="mb-6 md:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full sm:w-auto">
@@ -312,8 +297,12 @@ export default function Home() {
 
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {filteredArticles.length > 0 ? (
-                filteredArticles.map((article) => (
-                  <FeedCard key={article.id} article={article} />
+                filteredArticles.map((article, index) => (
+                  <React.Fragment key={article.id}>
+                    <FeedCard article={article} />
+                    {/* 4記事ごとに広告カードを挿入 */}
+                    {(index + 1) % 4 === 0 && <AdCard />}
+                  </React.Fragment>
                 ))
               ) : (
                 <div className="col-span-full py-24 md:py-32 text-center">
