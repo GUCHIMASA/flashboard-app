@@ -180,29 +180,28 @@ export default function Home() {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 w-full bg-background/60 backdrop-blur-xl border-b border-border/30 px-4 md:px-6 h-16 flex items-center justify-between gap-2 md:gap-4">
+        <header className="sticky top-0 z-40 w-full bg-background/60 backdrop-blur-xl border-b border-border/30 px-3 md:px-6 h-14 md:h-16 flex items-center justify-between gap-2 md:gap-4">
           <div className="flex items-center gap-2 md:gap-4">
             <SidebarTrigger className="hover:bg-muted/50 transition-colors shrink-0" />
             <div className="h-6 w-px bg-border/40 hidden xs:block" />
-            <h2 className="font-headline text-sm md:text-lg font-bold text-foreground truncate max-w-[100px] xs:max-w-none">
+            <h2 className="font-headline text-sm md:text-lg font-bold text-foreground truncate max-w-[80px] xs:max-w-none">
               {headerTitle}
             </h2>
             
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
+            <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <span className="text-[9px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span className="xs:inline">LIVE</span> 
-                <span className="hidden md:inline text-muted-foreground/40">•</span> 
-                {lastUpdated ? format(lastUpdated, 'HH:mm:ss') : '--:--:--'}
+              <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
+                <span>LIVE</span> 
+                <span className="hidden xs:inline">{lastUpdated ? format(lastUpdated, 'HH:mm:ss') : '--:--:--'}</span>
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-1 justify-end max-w-xl">
-            <div className="relative w-full max-w-[140px] xs:max-w-xs sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+          <div className="flex items-center gap-1.5 md:gap-2 flex-1 justify-end max-w-xl">
+            <div className="relative w-full max-w-[120px] xs:max-w-xs sm:max-w-md">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
               <Input 
-                className="pl-8 md:pl-10 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary h-8 md:h-9 rounded-xl transition-all hover:bg-muted/50 text-xs md:text-sm" 
+                className="pl-7 md:pl-10 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary h-8 md:h-9 rounded-xl transition-all hover:bg-muted/50 text-[11px] md:text-sm" 
                 placeholder="検索..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -219,7 +218,7 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="flex-1 p-4 md:p-6 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-2.5 md:p-6 space-y-4 md:space-y-8 max-w-7xl mx-auto w-full">
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
             <section className="relative group">
               <Carousel 
@@ -231,7 +230,7 @@ export default function Home() {
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[250px] xs:h-[300px] md:h-[450px] w-full overflow-hidden rounded-[2rem] md:rounded-[2.5rem] shadow-2xl">
+                      <div className="relative h-[200px] xs:h-[280px] md:h-[450px] w-full overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl">
                         <Image 
                           src={article.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'} 
                           alt={article.title}
@@ -239,48 +238,48 @@ export default function Home() {
                           className="object-cover"
                           priority
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
                         
-                        <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full max-w-4xl">
-                          <div className="flex items-center gap-3 mb-3 md:mb-4">
-                            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 text-white">
-                              <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3 text-amber-300" />
+                        <div className="absolute bottom-0 left-0 p-4 md:p-12 w-full max-w-4xl">
+                          <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
+                            <div className="inline-flex items-center gap-1 md:gap-2 bg-white/10 backdrop-blur-md px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[7px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 text-white">
+                              <Sparkles className="w-2 h-2 md:w-3 md:h-3 text-amber-300" />
                               注目
                             </div>
-                            <div className="flex items-center gap-1.5 text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
-                              <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                            <div className="flex items-center gap-1 text-white/60 text-[7px] md:text-[10px] font-bold uppercase tracking-widest">
+                              <Clock className="w-2 h-2 md:w-3 md:h-3" />
                               {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
                             </div>
                           </div>
-                          <h1 className="font-headline text-lg xs:text-xl md:text-4xl lg:text-5xl font-bold mb-2 md:mb-4 tracking-tight leading-[1.2] text-white line-clamp-2">
+                          <h1 className="font-headline text-base xs:text-lg md:text-4xl lg:text-5xl font-bold mb-1.5 md:mb-4 tracking-tight leading-[1.2] text-white line-clamp-2">
                             {article.title}
                           </h1>
-                          <p className="text-white/70 text-[10px] md:text-base mb-4 md:mb-6 line-clamp-2 max-w-2xl font-medium hidden xs:block">
+                          <p className="text-white/70 text-[10px] md:text-base mb-3 md:mb-6 line-clamp-1 xs:line-clamp-2 max-w-2xl font-medium hidden xs:block">
                             {article.content}
                           </p>
-                          <div className="flex items-center gap-3 md:gap-4">
-                            <Button asChild className="bg-white text-black hover:bg-white/90 font-bold px-4 md:px-6 rounded-xl h-9 md:h-11 text-xs md:text-sm">
+                          <div className="flex items-center gap-2 md:gap-4">
+                            <Button asChild className="bg-white text-black hover:bg-white/90 font-bold px-3 md:px-6 rounded-lg md:rounded-xl h-7 md:h-11 text-[10px] md:text-sm">
                               <a href={article.link} target="_blank" rel="noopener noreferrer">
-                                詳しく読む <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-2" />
+                                詳しく読む <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
                               </a>
                             </Button>
-                            <span className="text-white/50 text-[8px] md:text-xs font-bold uppercase tracking-widest truncate">{article.sourceName}</span>
+                            <span className="text-white/50 text-[7px] md:text-xs font-bold uppercase tracking-widest truncate">{article.sourceName}</span>
                           </div>
                         </div>
                       </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-4 md:left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
-                <CarouselNext className="right-4 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
+                <CarouselPrevious className="left-2 md:left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-7 w-7 md:h-8 md:w-8" />
+                <CarouselNext className="right-2 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-7 w-7 md:h-8 md:w-8" />
                 
-                <div className="absolute bottom-4 right-8 flex gap-1.5 z-10 md:bottom-8 md:right-12">
+                <div className="absolute bottom-3 right-4 flex gap-1 z-10 md:bottom-8 md:right-12">
                   {Array.from({ length: count }).map((_, index) => (
                     <button
                       key={index}
                       className={cn(
-                        "w-1.5 h-1.5 rounded-full transition-all duration-300",
-                        current === index ? "bg-white w-4" : "bg-white/30"
+                        "w-1 h-1 md:w-1.5 md:h-1.5 rounded-full transition-all duration-300",
+                        current === index ? "bg-white w-3 md:w-4" : "bg-white/30"
                       )}
                       onClick={() => api?.scrollTo(index)}
                       aria-label={`Go to slide ${index + 1}`}
@@ -292,27 +291,27 @@ export default function Home() {
           )}
 
           <section>
-            <div className="mb-6 md:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="mb-4 md:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full sm:w-auto">
-                <TabsList className="bg-muted/40 p-1 rounded-xl w-full sm:w-auto">
-                  <TabsTrigger value="All" className="flex-1 sm:flex-none rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">タイムライン</TabsTrigger>
-                  <TabsTrigger value="Reliable" className="flex-1 sm:flex-none rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">信頼済み</TabsTrigger>
-                  <TabsTrigger value="Discovery" className="flex-1 sm:flex-none rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">発見</TabsTrigger>
-                  <TabsTrigger value="Bookmarks" className="flex-1 sm:flex-none rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs flex items-center gap-1 justify-center">
+                <TabsList className="bg-muted/40 p-0.5 md:p-1 rounded-lg md:rounded-xl w-full sm:w-auto">
+                  <TabsTrigger value="All" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">タイムライン</TabsTrigger>
+                  <TabsTrigger value="Reliable" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">信頼済み</TabsTrigger>
+                  <TabsTrigger value="Discovery" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">発見</TabsTrigger>
+                  <TabsTrigger value="Bookmarks" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs flex items-center gap-1 justify-center">
                     <Bookmark className="w-3 h-3" />
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
               
-              <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest ml-auto sm:ml-0">
-                <div className="flex items-center gap-1.5">
-                  <Filter className="w-3 h-3" />
+              <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest ml-auto sm:ml-0">
+                <div className="flex items-center gap-1">
+                  <Filter className="w-2.5 h-2.5 md:w-3 md:h-3" />
                   <span>{filteredArticles.length} インサイト</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-8">
               {filteredArticles.length > 0 ? (
                 filteredArticles.map((article, index) => (
                   <React.Fragment key={article.id}>
@@ -321,13 +320,13 @@ export default function Home() {
                   </React.Fragment>
                 ))
               ) : (
-                <div className="col-span-full py-24 md:py-32 text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-3xl bg-muted/30 text-muted-foreground mb-6">
-                    <Filter className="w-8 h-8 md:w-10 md:h-10" />
+                <div className="col-span-full py-16 md:py-32 text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-muted/30 text-muted-foreground mb-4 md:mb-6">
+                    <Filter className="w-6 h-6 md:w-10 md:h-10" />
                   </div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-2 tracking-tight">データが見つかりません</h3>
-                  <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-8 px-4">条件に合う記事が存在しないか、まだデータが同期されていません。</p>
-                  <Button variant="outline" className="rounded-xl px-8" onClick={() => {setSearchQuery(''); handleCategoryChange('All');}}>
+                  <h3 className="text-lg md:text-2xl font-bold mb-1 md:mb-2 tracking-tight">データが見つかりません</h3>
+                  <p className="text-muted-foreground text-[11px] md:text-sm max-w-xs mx-auto mb-6 md:mb-8 px-4">条件に合う記事が存在しないか、まだデータが同期されていません。</p>
+                  <Button variant="outline" className="rounded-lg md:rounded-xl px-6 md:px-8 text-xs h-8 md:h-10" onClick={() => {setSearchQuery(''); handleCategoryChange('All');}}>
                     全データを表示
                   </Button>
                 </div>
