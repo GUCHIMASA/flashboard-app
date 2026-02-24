@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -46,6 +47,8 @@ export function FeedCard({ article }: FeedCardProps) {
     addDoc(collection(db, 'users', user.uid, 'bookmarks'), {
       articleId: article.id,
       title: article.title,
+      content: article.content, // 内容も保存してブックマーク一覧で表示できるようにする
+      summary: summary, // 生成済みの要約があれば保存
       url: article.link,
       sourceName: article.sourceName,
       bookmarkedAt: serverTimestamp(),
@@ -60,7 +63,7 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   return (
-    <Card className="group border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg bg-card">
+    <Card className="group flex flex-col h-full border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg bg-card">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -72,20 +75,20 @@ export function FeedCard({ article }: FeedCardProps) {
             {article.title}
           </h3>
         </div>
-        <Badge variant="outline" className="bg-secondary/50 text-primary-foreground border-transparent whitespace-nowrap ml-2">
+        <Badge variant="outline" className="bg-secondary/50 text-foreground border-transparent whitespace-nowrap ml-2">
           {categoryLabels[article.category] || article.category}
         </Badge>
       </CardHeader>
       
-      <CardContent className="pt-2">
+      <CardContent className="pt-2 flex-grow">
         <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3">
           {article.content}
         </p>
 
         {summary ? (
-          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 mt-2">
+          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 mt-2 animate-in fade-in slide-in-from-top-2 duration-500">
             <div className="flex items-center gap-2 mb-2 text-accent">
-              <BrainCircuit className="w-4 h-4" />
+              <BrainCircuit className="w-4 h-4 animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-widest">AI 要約</span>
             </div>
             <p className="text-sm text-foreground/80 leading-relaxed italic">
@@ -101,16 +104,21 @@ export function FeedCard({ article }: FeedCardProps) {
             className="w-full mt-2 border-dashed bg-secondary/30 hover:bg-accent/10 border-accent/30 text-accent group-hover:bg-accent group-hover:text-white transition-all"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                要約を生成中...
+              </>
             ) : (
-              <BrainCircuit className="w-4 h-4 mr-2" />
+              <>
+                <BrainCircuit className="w-4 h-4 mr-2" />
+                AIで要約する
+              </>
             )}
-            AIで要約する
           </Button>
         )}
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between border-t border-border/50 py-3 bg-muted/5 rounded-b-lg">
+      <CardFooter className="flex items-center justify-between border-t border-border/50 py-3 bg-muted/5 rounded-b-lg mt-auto">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
             <Share2 className="h-4 w-4" />

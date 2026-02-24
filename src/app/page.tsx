@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -17,7 +18,7 @@ export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
   
-  const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
+  const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -30,6 +31,14 @@ export default function Home() {
 
   const { data: customSources = [] } = useCollection(sourcesQuery);
 
+  // Firestoreからブックマークを取得
+  const bookmarksQuery = useMemo(() => {
+    if (!db || !user) return null;
+    return collection(db, 'users', user.uid, 'bookmarks');
+  }, [db, user]);
+
+  const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
+
   const allSources = [...INITIAL_SOURCES, ...customSources.map(s => ({
     id: s.id,
     name: s.name,
@@ -37,8 +46,23 @@ export default function Home() {
     category: 'Custom' as Category
   }))];
 
-  const filteredArticles = MOCK_ARTICLES
-    .filter(a => activeCategory === 'All' || a.category === activeCategory)
+  // ブックマークされた記事をArticle型に変換して表示用リストを作成
+  const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
+    id: b.id,
+    title: b.title,
+    content: b.content || '内容がありません',
+    summary: b.summary,
+    sourceName: b.sourceName,
+    sourceUrl: '#',
+    publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    category: 'Reliable', // 仮
+    link: b.url
+  }));
+
+  const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : MOCK_ARTICLES;
+
+  const filteredArticles = displayArticles
+    .filter(a => activeCategory === 'All' || activeCategory === 'Bookmarks' || a.category === activeCategory)
     .filter(a => 
       a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       a.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -66,14 +90,15 @@ export default function Home() {
     'All': 'すべて',
     'Reliable': '信頼済み',
     'Discovery': '発見',
-    'Custom': 'カスタム'
+    'Custom': 'カスタム',
+    'Bookmarks': 'ブックマーク'
   };
 
   return (
     <div className="flex min-h-screen bg-background text-foreground selection:bg-accent/30">
       <DashboardSidebar 
-        activeCategory={activeCategory} 
-        setActiveCategory={setActiveCategory} 
+        activeCategory={activeCategory === 'Bookmarks' ? 'All' : activeCategory as any} 
+        setActiveCategory={(cat) => setActiveCategory(cat as any)} 
         sources={allSources}
         onAddSource={() => setIsAddSourceOpen(true)}
       />
@@ -135,22 +160,21 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
-              
-              <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
-                <BrainCircuit className="w-full h-full -rotate-12 translate-x-1/4" />
-              </div>
             </div>
           </div>
         )}
 
         <div className="p-6">
           <div className="mb-6 flex items-center justify-between">
-            <Tabs value={activeCategory} onValueChange={(val) => setActiveCategory(val as Category | 'All')}>
+            <Tabs value={activeCategory} onValueChange={(val) => setActiveCategory(val as any)}>
               <TabsList className="bg-muted/30 p-1">
                 <TabsTrigger value="All" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">タイムライン</TabsTrigger>
                 <TabsTrigger value="Reliable" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">信頼済み</TabsTrigger>
                 <TabsTrigger value="Discovery" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">発見</TabsTrigger>
                 <TabsTrigger value="Custom" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">カスタム</TabsTrigger>
+                <TabsTrigger value="Bookmarks" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium flex items-center gap-1">
+                  <Bookmark className="w-3 h-3" /> ブックマーク
+                </TabsTrigger>
               </TabsList>
             </Tabs>
             
