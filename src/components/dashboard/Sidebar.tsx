@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -9,12 +8,17 @@ import {
   LayoutDashboard, 
   Plus,
   Settings,
-  ChevronRight,
-  Zap
+  Zap,
+  LogIn,
+  LogOut,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Category, FeedSource } from '@/app/lib/types';
+import { useAuth, useUser } from '@/firebase';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All';
@@ -29,11 +33,26 @@ export function DashboardSidebar({
   sources,
   onAddSource
 }: DashboardSidebarProps) {
-  const categories: { label: Category | 'All'; icon: any }[] = [
-    { label: 'All', icon: LayoutDashboard },
-    { label: 'Reliable', icon: ShieldCheck },
-    { label: 'Discovery', icon: Sparkles },
-    { label: 'Custom', icon: Rss },
+  const auth = useAuth();
+  const { user } = useUser();
+
+  const handleLogin = () => {
+    if (auth) {
+      signInWithPopup(auth, new GoogleAuthProvider());
+    }
+  };
+
+  const handleLogout = () => {
+    if (auth) {
+      signOut(auth);
+    }
+  };
+
+  const categories: { label: Category | 'All'; labelJa: string; icon: any }[] = [
+    { label: 'All', labelJa: 'すべて', icon: LayoutDashboard },
+    { label: 'Reliable', labelJa: '信頼済み', icon: ShieldCheck },
+    { label: 'Discovery', labelJa: '発見', icon: Sparkles },
+    { label: 'Custom', labelJa: 'カスタム', icon: Rss },
   ];
 
   return (
@@ -59,7 +78,7 @@ export function DashboardSidebar({
               )}
             >
               <cat.icon className="w-4 h-4" />
-              {cat.label}
+              {cat.labelJa}
             </button>
           ))}
         </nav>
@@ -67,10 +86,12 @@ export function DashboardSidebar({
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Sources</h2>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddSource}>
-            <Plus className="w-4 h-4" />
-          </Button>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">購読ソース</h2>
+          {user && (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddSource}>
+              <Plus className="w-4 h-4" />
+            </Button>
+          )}
         </div>
         <div className="space-y-1">
           {sources.map((source) => (
@@ -79,14 +100,43 @@ export function DashboardSidebar({
               <span className="flex-1 truncate">{source.name}</span>
             </div>
           ))}
+          {!user && (
+            <p className="text-[10px] text-muted-foreground mt-2 px-3">
+              ログインするとソースを追加できます
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="p-6 border-t border-sidebar-border mt-auto">
-        <Button variant="outline" className="w-full justify-start gap-3 bg-background shadow-sm border-sidebar-border" size="sm">
-          <Settings className="w-4 h-4" />
-          Settings
-        </Button>
+      <div className="p-4 border-t border-sidebar-border mt-auto bg-sidebar/50">
+        {user ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3 px-2">
+              <Avatar className="h-8 w-8 border border-primary/20">
+                <AvatarImage src={user.photoURL || ''} />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {user.displayName?.[0] || <User className="h-3 w-3" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{user.displayName}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" className="bg-background text-[10px] h-8" onClick={handleLogout}>
+                <LogOut className="w-3 h-3 mr-1" /> ログアウト
+              </Button>
+              <Button variant="ghost" size="sm" className="text-[10px] h-8">
+                <Settings className="w-3 h-3 mr-1" /> 設定
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button onClick={handleLogin} className="w-full gap-2 text-xs font-bold" size="sm">
+            <LogIn className="w-4 h-4" /> Googleでログイン
+          </Button>
+        )}
       </div>
     </aside>
   );

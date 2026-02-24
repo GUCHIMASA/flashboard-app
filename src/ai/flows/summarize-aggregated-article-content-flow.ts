@@ -1,23 +1,23 @@
 'use server';
 /**
- * @fileOverview This file implements a Genkit flow for summarizing aggregated article content.
+ * @fileOverview 記事の内容を要約するGenkitフロー。
  *
- * - summarizeAggregatedArticleContent - A function that generates a concise AI-powered summary for a given article.
- * - SummarizeAggregatedArticleContentInput - The input type for the summarizeAggregatedArticleContent function.
- * - SummarizeAggregatedArticleContentOutput - The return type for the summarizeAggregatedArticleContent function.
+ * - summarizeAggregatedArticleContent - 指定された記事に対して、AIによる簡潔な要約を日本語で生成します。
+ * - SummarizeAggregatedArticleContentInput - 入力型定義。
+ * - SummarizeAggregatedArticleContentOutput - 出力型定義。
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const SummarizeAggregatedArticleContentInputSchema = z.object({
-  title: z.string().describe('The title of the article.'),
-  content: z.string().describe('The full content of the article.'),
+  title: z.string().describe('記事のタイトル'),
+  content: z.string().describe('記事の本文'),
 });
 export type SummarizeAggregatedArticleContentInput = z.infer<typeof SummarizeAggregatedArticleContentInputSchema>;
 
 const SummarizeAggregatedArticleContentOutputSchema = z.object({
-  summary: z.string().describe('A concise, AI-generated summary of the article.'),
+  summary: z.string().describe('記事の簡潔な日本語による要約'),
 });
 export type SummarizeAggregatedArticleContentOutput = z.infer<typeof SummarizeAggregatedArticleContentOutputSchema>;
 
@@ -31,12 +31,13 @@ const summarizePrompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: { schema: SummarizeAggregatedArticleContentInputSchema },
   output: { schema: SummarizeAggregatedArticleContentOutputSchema },
-  prompt: `You are an AI assistant tasked with summarizing news articles concisely.
+  prompt: `あなたはニュース記事を簡潔に要約するAIアシスタントです。
 
-Summarize the following article, focusing on its main points and providing a brief overview that captures the essence of the content. The summary should be approximately 3-5 sentences long.
+以下の記事を、主要なポイントに焦点を当てて、エッセンスを捉えた簡潔な日本語の要約を作成してください。
+要約は3〜5文程度の長さ（約150〜200文字程度）にしてください。
 
-Article Title: {{{title}}}
-Article Content: {{{content}}}`,
+記事タイトル: {{{title}}}
+記事本文: {{{content}}}`,
 });
 
 const summarizeAggregatedArticleContentFlow = ai.defineFlow(

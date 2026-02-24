@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -39,17 +38,17 @@ export function AddSourceDialog({ open, onOpenChange, onAdd }: AddSourceDialogPr
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">Add News Source</DialogTitle>
+          <DialogTitle className="font-headline text-2xl">ニュースソースを追加</DialogTitle>
           <DialogDescription>
-            Enter the details of the AI news source or RSS feed you want to track.
+            追跡したいAIニュースサイトやRSSフィードの詳細を入力してください。
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm font-semibold">Source Name</Label>
+            <Label htmlFor="name" className="text-sm font-semibold">ソース名</Label>
             <Input 
               id="name" 
-              placeholder="e.g. Stability AI Blog" 
+              placeholder="例: Stability AI ブログ" 
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="bg-muted/30"
@@ -57,7 +56,7 @@ export function AddSourceDialog({ open, onOpenChange, onAdd }: AddSourceDialogPr
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="url" className="text-sm font-semibold">RSS Feed URL</Label>
+            <Label htmlFor="url" className="text-sm font-semibold">RSSフィードURL</Label>
             <Input 
               id="url" 
               placeholder="https://example.com/feed.xml" 
@@ -69,8 +68,8 @@ export function AddSourceDialog({ open, onOpenChange, onAdd }: AddSourceDialogPr
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90">Add Source</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>キャンセル</Button>
+            <Button type="submit" className="bg-primary hover:bg-primary/90">追加する</Button>
           </DialogFooter>
         </form>
       </DialogContent>

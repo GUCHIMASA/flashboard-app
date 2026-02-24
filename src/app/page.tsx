@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, RefreshCw, Filter, Sparkles, BrainCircuit } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
@@ -11,16 +10,34 @@ import { Input } from '@/components/ui/input';
 import { INITIAL_SOURCES, MOCK_ARTICLES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useFirestore, useCollection, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function Home() {
+  const { user } = useUser();
+  const db = useFirestore();
+  
   const [activeCategory, setActiveCategory] = useState<Category | 'All'>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sources, setSources] = useState<FeedSource[]>(INITIAL_SOURCES);
-  const [articles, setArticles] = useState<Article[]>(MOCK_ARTICLES);
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const filteredArticles = articles
+  // Firestoreからカスタムソースを取得
+  const sourcesQuery = useMemo(() => {
+    if (!db || !user) return null;
+    return collection(db, 'users', user.uid, 'sources');
+  }, [db, user]);
+
+  const { data: customSources = [] } = useCollection(sourcesQuery);
+
+  const allSources = [...INITIAL_SOURCES, ...customSources.map(s => ({
+    id: s.id,
+    name: s.name,
+    url: s.url,
+    category: 'Custom' as Category
+  }))];
+
+  const filteredArticles = MOCK_ARTICLES
     .filter(a => activeCategory === 'All' || a.category === activeCategory)
     .filter(a => 
       a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -30,16 +47,26 @@ export default function Home() {
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
   const handleAddSource = (newSource: Omit<FeedSource, 'id'>) => {
-    const id = (sources.length + 1).toString();
-    setSources([...sources, { ...newSource, id }]);
+    if (!db || !user) return;
+    
+    addDoc(collection(db, 'users', user.uid, 'sources'), {
+      ...newSource,
+      createdAt: serverTimestamp(),
+    });
   };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    // Simulate API fetch delay
     setTimeout(() => {
       setIsRefreshing(false);
     }, 1500);
+  };
+
+  const categoryLabels: Record<string, string> = {
+    'All': 'すべて',
+    'Reliable': '信頼済み',
+    'Discovery': '発見',
+    'Custom': 'カスタム'
   };
 
   return (
@@ -47,20 +74,19 @@ export default function Home() {
       <DashboardSidebar 
         activeCategory={activeCategory} 
         setActiveCategory={setActiveCategory} 
-        sources={sources}
+        sources={allSources}
         onAddSource={() => setIsAddSourceOpen(true)}
       />
 
       <main className="flex-1 flex flex-col">
-        {/* Header */}
         <header className="sticky top-0 z-30 w-full bg-background/80 backdrop-blur-md border-b border-border/50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <h2 className="font-headline text-2xl font-bold text-primary whitespace-nowrap">
-              {activeCategory} Feed
+              {categoryLabels[activeCategory]} フィード
             </h2>
             <div className="hidden lg:flex items-center gap-2 bg-secondary/40 px-3 py-1 rounded-full text-xs font-medium text-muted-foreground">
               <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Updated just now
+              たった今更新
             </div>
           </div>
 
@@ -69,7 +95,7 @@ export default function Home() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 className="pl-10 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary shadow-inner" 
-                placeholder="Search AI insights..." 
+                placeholder="AIのインサイトを検索..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -85,33 +111,31 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Hero Section (Only on All) */}
         {activeCategory === 'All' && !searchQuery && (
           <div className="px-6 pt-8 pb-4">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-accent p-8 text-primary-foreground shadow-xl">
               <div className="relative z-10 max-w-2xl">
                 <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4">
                   <Sparkles className="w-3 h-3" />
-                  What's New in AI
+                  AIの最新動向
                 </div>
                 <h1 className="font-headline text-4xl font-bold mb-4 tracking-tight leading-tight">
-                  Decode the Intelligence. <br/> Stay Ahead of the Curve.
+                  知性を解読し、<br/> 時代の最先端へ。
                 </h1>
                 <p className="text-primary-foreground/80 text-lg mb-6 leading-relaxed">
-                  Real-time aggregation from world-leading labs and discovery platforms. 
-                  Summarized by Gemini for high-velocity information consumption.
+                  世界中の主要ラボやプラットフォームからリアルタイムで情報を集約。
+                  Geminiが要約することで、圧倒的なスピードで情報を吸収できます。
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Button className="bg-white text-primary hover:bg-white/90 font-bold px-6">
-                    Analyze Latest Trends
+                    最新トレンドを分析
                   </Button>
                   <Button variant="outline" className="border-white/20 hover:bg-white/10 text-white px-6">
-                    Explore Sources
+                    ソースを探索
                   </Button>
                 </div>
               </div>
               
-              {/* Decorative elements */}
               <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
                 <BrainCircuit className="w-full h-full -rotate-12 translate-x-1/4" />
               </div>
@@ -119,21 +143,20 @@ export default function Home() {
           </div>
         )}
 
-        {/* Content Area */}
         <div className="p-6">
           <div className="mb-6 flex items-center justify-between">
             <Tabs value={activeCategory} onValueChange={(val) => setActiveCategory(val as Category | 'All')}>
               <TabsList className="bg-muted/30 p-1">
-                <TabsTrigger value="All" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">Timeline</TabsTrigger>
-                <TabsTrigger value="Reliable" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">Reliable</TabsTrigger>
-                <TabsTrigger value="Discovery" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">Discovery</TabsTrigger>
-                <TabsTrigger value="Custom" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">Custom</TabsTrigger>
+                <TabsTrigger value="All" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">タイムライン</TabsTrigger>
+                <TabsTrigger value="Reliable" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">信頼済み</TabsTrigger>
+                <TabsTrigger value="Discovery" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">発見</TabsTrigger>
+                <TabsTrigger value="Custom" className="data-[state=active]:bg-background data-[state=active]:text-primary font-medium">カスタム</TabsTrigger>
               </TabsList>
             </Tabs>
             
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="w-4 h-4" />
-              <span>{filteredArticles.length} results</span>
+              <span>{filteredArticles.length} 件の結果</span>
             </div>
           </div>
 
@@ -148,11 +171,11 @@ export default function Home() {
                   <Search className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold">No results found</h3>
-                  <p className="text-muted-foreground">Try adjusting your filters or search keywords.</p>
+                  <h3 className="text-xl font-bold">結果が見つかりません</h3>
+                  <p className="text-muted-foreground">フィルターを変更するか、別のキーワードで検索してください。</p>
                 </div>
                 <Button variant="outline" onClick={() => {setSearchQuery(''); setActiveCategory('All');}}>
-                  Clear all filters
+                  すべてのフィルターをクリア
                 </Button>
               </div>
             )}

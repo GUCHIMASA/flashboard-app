@@ -1,0 +1,43 @@
+
+{
+  "entities": {
+    "Source": {
+      "title": "ニュースソース",
+      "description": "ユーザーが追加したカスタムRSSフィード情報",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "ソース名" },
+        "url": { "type": "string", "description": "RSSフィードのURL" },
+        "category": { "type": "string", "enum": ["Reliable", "Discovery", "Custom"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "url", "category"]
+    },
+    "Bookmark": {
+      "title": "ブックマーク",
+      "description": "ユーザーが保存した記事",
+      "type": "object",
+      "properties": {
+        "articleId": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "bookmarkedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["articleId", "title", "url", "sourceName"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com"]
+  },
+  "firestore": {
+    "/users/{userId}/sources/{sourceId}": {
+      "schema": "Source",
+      "description": "ユーザー個別のカスタムニュースソース"
+    },
+    "/users/{userId}/bookmarks/{bookmarkId}": {
+      "schema": "Bookmark",
+      "description": "ユーザーが保存した記事一覧"
+    }
+  }
+}
