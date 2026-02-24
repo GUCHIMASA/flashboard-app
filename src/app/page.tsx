@@ -199,7 +199,7 @@ export default function Home() {
             <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 transition-all">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span className="hidden xs:inline">LAST SYNC:</span> 
+                <span className="inline">LAST SYNC:</span> 
                 <span>{lastSyncTime ? format(lastSyncTime, 'HH:mm:ss') : '--:--:--'}</span>
               </span>
             </div>
