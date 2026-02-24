@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "ai-hero-1",
+      "description": "Neural network visualization",
+      "imageUrl": "https://picsum.photos/seed/ai1/800/400",
+      "imageHint": "neural network"
+    },
+    {
+      "id": "ai-chip",
+      "description": "AI Processor",
+      "imageUrl": "https://picsum.photos/seed/ai2/400/300",
+      "imageHint": "ai chip"
+    }
+  ]
+}
