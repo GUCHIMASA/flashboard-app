@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'AI Synapse | インテリジェントAIダッシュボード',
@@ -21,7 +23,10 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          {children}
+          <SidebarProvider defaultOpen={true}>
+            {children}
+            <Toaster />
+          </SidebarProvider>
         </FirebaseClientProvider>
       </body>
     </html>

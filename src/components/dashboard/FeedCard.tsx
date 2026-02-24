@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ExternalLink, BrainCircuit, Share2, Bookmark, Loader2, BookmarkCheck } from 'lucide-react';
+import { ExternalLink, BrainCircuit, Share2, Bookmark, Loader2, BookmarkCheck, ArrowUpRight } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,7 @@ import { summarizeAggregatedArticleContent } from '@/ai/flows/summarize-aggregat
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface FeedCardProps {
   article: Article;
@@ -21,6 +21,7 @@ interface FeedCardProps {
 export function FeedCard({ article }: FeedCardProps) {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const [summary, setSummary] = useState<string | null>(article.summary || null);
   const [loading, setLoading] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -34,6 +35,10 @@ export function FeedCard({ article }: FeedCardProps) {
         content: article.content
       });
       setSummary(result.summary);
+      toast({
+        title: "要約が完了しました",
+        description: "AIによる要約が生成されました。",
+      });
     } catch (error) {
       console.error("要約に失敗しました:", error);
     } finally {
@@ -42,18 +47,29 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   const handleBookmark = () => {
-    if (!db || !user) return;
+    if (!db || !user) {
+      toast({
+        variant: "destructive",
+        title: "ログインが必要です",
+        description: "ブックマークするにはログインしてください。",
+      });
+      return;
+    }
     
     addDoc(collection(db, 'users', user.uid, 'bookmarks'), {
       articleId: article.id,
       title: article.title,
-      content: article.content, // 内容も保存してブックマーク一覧で表示できるようにする
-      summary: summary, // 生成済みの要約があれば保存
+      content: article.content,
+      summary: summary,
       url: article.link,
       sourceName: article.sourceName,
       bookmarkedAt: serverTimestamp(),
     });
     setIsBookmarked(true);
+    toast({
+      title: "保存しました",
+      description: "ブックマークに追加されました。",
+    });
   };
 
   const categoryLabels: Record<string, string> = {
@@ -63,35 +79,40 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   return (
-    <Card className="group flex flex-col h-full border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg bg-card">
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-            <span className="font-semibold text-accent">{article.sourceName}</span>
-            <span>•</span>
-            <span>{formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}</span>
+    <Card className="group flex flex-col h-full border-border/40 hover:border-primary/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] bg-card rounded-[2rem] overflow-hidden">
+      <CardHeader className="p-6 pb-2">
+        <div className="flex items-center justify-between mb-4">
+          <Badge variant="outline" className="bg-muted/30 text-[10px] uppercase tracking-widest font-bold border-transparent px-3 py-1 rounded-full">
+            {categoryLabels[article.category] || article.category}
+          </Badge>
+          <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+            {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
+          </span>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-primary tracking-tight">{article.sourceName}</span>
           </div>
-          <h3 className="font-headline text-xl font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="font-headline text-xl font-bold leading-[1.3] group-hover:text-primary transition-colors line-clamp-2 tracking-tight">
             {article.title}
           </h3>
         </div>
-        <Badge variant="outline" className="bg-secondary/50 text-foreground border-transparent whitespace-nowrap ml-2">
-          {categoryLabels[article.category] || article.category}
-        </Badge>
       </CardHeader>
       
-      <CardContent className="pt-2 flex-grow">
-        <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3">
+      <CardContent className="px-6 py-2 flex-grow">
+        <p className="text-muted-foreground/80 text-sm leading-relaxed mb-6 line-clamp-3 font-medium">
           {article.content}
         </p>
 
         {summary ? (
-          <div className="bg-accent/5 border border-accent/20 rounded-lg p-4 mt-2 animate-in fade-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center gap-2 mb-2 text-accent">
-              <BrainCircuit className="w-4 h-4 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest">AI 要約</span>
+          <div className="bg-primary/5 border border-primary/10 rounded-[1.5rem] p-5 mt-2 animate-in fade-in slide-in-from-top-4 duration-700 relative overflow-hidden group/summary">
+            <div className="absolute top-0 right-0 p-3 opacity-20">
+              <BrainCircuit className="w-8 h-8 text-primary" />
             </div>
-            <p className="text-sm text-foreground/80 leading-relaxed italic">
+            <div className="flex items-center gap-2 mb-3 text-primary relative z-10">
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">AI Intelligence</span>
+            </div>
+            <p className="text-sm text-foreground/90 leading-relaxed font-medium relative z-10">
               {summary}
             </p>
           </div>
@@ -99,43 +120,42 @@ export function FeedCard({ article }: FeedCardProps) {
           <Button 
             onClick={handleSummarize} 
             disabled={loading}
-            variant="outline" 
-            size="sm" 
-            className="w-full mt-2 border-dashed bg-secondary/30 hover:bg-accent/10 border-accent/30 text-accent group-hover:bg-accent group-hover:text-white transition-all"
+            variant="ghost" 
+            className="w-full mt-2 h-12 rounded-xl bg-muted/20 hover:bg-primary hover:text-white border border-dashed border-primary/20 transition-all duration-300 font-bold text-xs"
           >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                要約を生成中...
+                解析中...
               </>
             ) : (
               <>
                 <BrainCircuit className="w-4 h-4 mr-2" />
-                AIで要約する
+                AI要約を生成
               </>
             )}
           </Button>
         )}
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between border-t border-border/50 py-3 bg-muted/5 rounded-b-lg mt-auto">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
-            <Share2 className="h-4 w-4" />
+      <CardFooter className="px-6 py-6 flex items-center justify-between border-t border-border/20 mt-4">
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted transition-colors">
+            <Share2 className="h-4 w-4 text-muted-foreground" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className={cn("h-8 w-8", isBookmarked ? "text-primary" : "text-muted-foreground hover:text-primary")}
+            className={cn("h-9 w-9 rounded-full transition-all", isBookmarked ? "text-primary bg-primary/5" : "text-muted-foreground hover:bg-muted")}
             onClick={handleBookmark}
-            disabled={!user || isBookmarked}
+            disabled={isBookmarked}
           >
             {isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
           </Button>
         </div>
-        <Button asChild variant="ghost" size="sm" className="text-accent hover:text-accent font-semibold flex items-center gap-1">
-          <a href={article.link} target="_blank" rel="noopener noreferrer">
-            ソースを読む <ExternalLink className="h-3 w-3" />
+        <Button asChild variant="ghost" size="sm" className="text-xs font-bold hover:text-primary p-0 h-auto">
+          <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+            記事を読む <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
         </Button>
       </CardFooter>
