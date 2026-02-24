@@ -38,7 +38,6 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (!api) return;
@@ -48,11 +47,6 @@ export default function Home() {
       setCurrent(api.selectedScrollSnap());
     });
   }, [api]);
-
-  // 初回マウント時に同期時刻をセット
-  useEffect(() => {
-    setLastSyncTime(new Date());
-  }, []);
 
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -111,6 +105,12 @@ export default function Home() {
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
 
+  // 表示されている記事の中で最も新しい公開日時を算出
+  const latestUpdateDate = useMemo(() => {
+    if (filteredArticles.length === 0) return null;
+    return new Date(filteredArticles[0].publishedAt);
+  }, [filteredArticles]);
+
   const heroArticles = useMemo(() => {
     return MOCK_ARTICLES.slice(0, 5);
   }, []);
@@ -138,10 +138,8 @@ export default function Home() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    // 実際の同期処理（シミュレート）が完了した時刻をセット
     setTimeout(() => {
       setIsRefreshing(false);
-      setLastSyncTime(new Date());
       toast({
         title: "最新の状態に更新しました",
         description: "RSSフィードの同期が完了しました。",
@@ -199,8 +197,8 @@ export default function Home() {
             <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 transition-all">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span className="inline">LAST SYNC:</span> 
-                <span>{lastSyncTime ? format(lastSyncTime, 'HH:mm:ss') : '--:--:--'}</span>
+                <span>LATEST UPDATE:</span> 
+                <span>{latestUpdateDate ? format(latestUpdateDate, 'MM/dd HH:mm') : '--/-- --:--'}</span>
               </span>
             </div>
           </div>
