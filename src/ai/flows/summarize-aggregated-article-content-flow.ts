@@ -1,10 +1,8 @@
 'use server';
 /**
- * @fileOverview 記事の内容を要約するGenkitフロー。
+ * @fileOverview 記事の内容を極めて簡潔に要約するGenkitフロー。
  *
- * - summarizeAggregatedArticleContent - 指定された記事に対して、AIによる簡潔な要約を日本語で生成します。
- * - SummarizeAggregatedArticleContentInput - 入力型定義。
- * - SummarizeAggregatedArticleContentOutput - 出力型定義。
+ * - summarizeAggregatedArticleContent - 日本の多忙な読者向けに、一目でわかる要約を生成します。
  */
 
 import { ai } from '@/ai/genkit';
@@ -17,7 +15,7 @@ const SummarizeAggregatedArticleContentInputSchema = z.object({
 export type SummarizeAggregatedArticleContentInput = z.infer<typeof SummarizeAggregatedArticleContentInputSchema>;
 
 const SummarizeAggregatedArticleContentOutputSchema = z.object({
-  summary: z.string().describe('記事の簡潔な日本語による要約'),
+  summary: z.string().describe('記事の極めて簡潔な要約（3つの要点）'),
 });
 export type SummarizeAggregatedArticleContentOutput = z.infer<typeof SummarizeAggregatedArticleContentOutputSchema>;
 
@@ -31,15 +29,15 @@ const summarizePrompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: { schema: SummarizeAggregatedArticleContentInputSchema },
   output: { schema: SummarizeAggregatedArticleContentOutputSchema },
-  prompt: `あなたはニュース記事を日本語で簡潔に要約する専門のAIアシスタントです。
+  prompt: `あなたはニュース記事を日本の読者向けに「一目でわかるよう」要約する専門のAIアシスタントです。
 
-入力された記事（英語の場合もあります）の内容を正確に理解し、日本の読者が一目で内容を把握できるように、以下のガイドラインに従って日本語で要約を作成してください。
+以下のガイドラインに従って、記事（英語の場合もあります）を日本語で要約してください：
 
 ガイドライン:
-1. 必ず日本語で出力してください。
-2. 専門用語は、一般的な読者が理解できる言葉に置き換えるか、補足を加えてください。
-3. 主なポイントを3〜5文程度（約150〜200文字）にまとめてください。
-4. 客観的かつ事実に基づいたトーンで記述してください。
+1. 必ず日本語で、3つの短い箇条書き（・）で出力してください。
+2. 1文は20文字〜30文字程度、全体で100文字以内に収めてください。
+3. 専門用語は避け、中学生でもわかる平易な言葉を選んでください。
+4. 最も重要な結論やアクションを優先してください。
 
 記事タイトル: {{{title}}}
 記事本文: {{{content}}}`,

@@ -1,10 +1,9 @@
-
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { ExternalLink, BrainCircuit, Share2, Bookmark, Loader2, BookmarkCheck, ArrowUpRight } from 'lucide-react';
+import { ExternalLink, BrainCircuit, Share2, Bookmark, Loader2, BookmarkCheck, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface FeedCardProps {
   article: Article;
@@ -24,28 +24,37 @@ export function FeedCard({ article }: FeedCardProps) {
   const db = useFirestore();
   const { toast } = useToast();
   const [summary, setSummary] = useState<string | null>(article.summary || null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!article.summary);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const handleSummarize = async () => {
-    if (summary) return;
-    setLoading(true);
-    try {
-      const result = await summarizeAggregatedArticleContent({
-        title: article.title,
-        content: article.content
-      });
-      setSummary(result.summary);
-      toast({
-        title: "要約が完了しました",
-        description: "AIによる要約が生成されました。",
-      });
-    } catch (error) {
-      console.error("要約に失敗しました:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // コンポーネントマウント時に要約がない場合は自動生成
+  useEffect(() => {
+    let isMounted = true;
+    
+    const autoSummarize = async () => {
+      if (summary || !loading) return;
+      
+      try {
+        const result = await summarizeAggregatedArticleContent({
+          title: article.title,
+          content: article.content
+        });
+        if (isMounted) {
+          setSummary(result.summary);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error("自動要約に失敗しました:", error);
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    autoSummarize();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [article.title, article.content, summary, loading]);
 
   const handleBookmark = () => {
     if (!db || !user) {
@@ -64,6 +73,7 @@ export function FeedCard({ article }: FeedCardProps) {
       summary: summary,
       url: article.link,
       sourceName: article.sourceName,
+      imageUrl: article.imageUrl || '',
       bookmarkedAt: serverTimestamp(),
     });
     setIsBookmarked(true);
@@ -101,42 +111,31 @@ export function FeedCard({ article }: FeedCardProps) {
       </CardHeader>
       
       <CardContent className="px-3 md:px-6 py-1 md:py-2 flex-grow">
-        <p className="text-muted-foreground/80 text-[10px] md:text-sm leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-3 font-medium">
-          {article.content}
-        </p>
-
-        {summary ? (
-          <div className="bg-primary/5 border border-primary/10 rounded-[1.2rem] md:rounded-[1.5rem] p-3 md:p-5 mt-1 md:mt-2 animate-in fade-in slide-in-from-top-4 duration-700 relative overflow-hidden group/summary">
-            <div className="absolute top-0 right-0 p-2 opacity-10 md:opacity-20">
-              <BrainCircuit className="w-6 h-6 md:w-8 md:h-8 text-primary" />
-            </div>
-            <div className="flex items-center gap-2 mb-1.5 md:mb-3 text-primary relative z-10">
-              <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em]">AI Intelligence</span>
-            </div>
-            <p className="text-[11px] md:text-sm text-foreground/90 leading-relaxed font-medium relative z-10 line-clamp-4 md:line-clamp-none">
-              {summary}
-            </p>
+        {/* AI要約セクション - 自動表示 */}
+        <div className="bg-primary/5 border border-primary/10 rounded-[1.2rem] md:rounded-[1.5rem] p-3 md:p-5 mt-1 md:mt-2 relative overflow-hidden group/summary min-h-[100px] flex flex-col justify-center">
+          <div className="absolute top-0 right-0 p-2 opacity-10 md:opacity-20 pointer-events-none">
+            <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-primary" />
           </div>
-        ) : (
-          <Button 
-            onClick={handleSummarize} 
-            disabled={loading}
-            variant="ghost" 
-            className="w-full mt-1 md:mt-2 h-9 md:h-12 rounded-xl bg-muted/20 hover:bg-primary hover:text-white border border-dashed border-primary/20 transition-all duration-300 font-bold text-[10px] md:text-xs"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin mr-1.5 md:mr-2" />
-                解析中...
-              </>
-            ) : (
-              <>
-                <BrainCircuit className="w-3 h-3 md:w-4 md:h-4 mr-1.5 md:mr-2" />
-                要約生成
-              </>
-            )}
-          </Button>
-        )}
+          
+          <div className="flex items-center gap-2 mb-2 text-primary relative z-10">
+            <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em]">AI Insight</span>
+            {loading && <Loader2 className="w-2.5 h-2.5 md:w-3 md:h-3 animate-spin" />}
+          </div>
+
+          {loading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-full bg-primary/10" />
+              <Skeleton className="h-3 w-[90%] bg-primary/10" />
+              <Skeleton className="h-3 w-[80%] bg-primary/10" />
+            </div>
+          ) : summary ? (
+            <div className="text-[11px] md:text-sm text-foreground/90 leading-relaxed font-medium relative z-10 animate-in fade-in duration-700 whitespace-pre-line">
+              {summary}
+            </div>
+          ) : (
+            <p className="text-[10px] md:text-xs text-muted-foreground italic">要約を生成できませんでした</p>
+          )}
+        </div>
       </CardContent>
 
       <CardFooter className="px-3 md:px-6 py-3 md:py-6 flex items-center justify-between border-t border-border/10 md:border-border/20 mt-2 md:mt-4">
@@ -156,7 +155,7 @@ export function FeedCard({ article }: FeedCardProps) {
         </div>
         <Button asChild variant="ghost" size="sm" className="text-[10px] md:text-xs font-bold hover:text-primary p-0 h-auto">
           <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 md:gap-1.5">
-            <span className="hidden xs:inline">記事を</span>読む <ArrowUpRight className="h-3 w-3 md:h-3.5 md:h-3.5" />
+            原文を読む <ArrowUpRight className="h-3 w-3 md:h-3.5 md:h-3.5" />
           </a>
         </Button>
       </CardFooter>
