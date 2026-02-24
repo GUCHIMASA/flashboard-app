@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -10,7 +11,8 @@ import {
   Zap,
   LogIn,
   LogOut,
-  Bookmark
+  Bookmark,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, FeedSource } from '@/app/lib/types';
@@ -58,6 +60,15 @@ export function DashboardSidebar({
   const handleLogout = () => {
     if (auth) {
       signOut(auth);
+    }
+  };
+
+  const getFaviconUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    } catch {
+      return null;
     }
   };
 
@@ -117,19 +128,28 @@ export function DashboardSidebar({
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {reliableSources.map((source) => (
-                <SidebarMenuItem key={source.id}>
-                  <SidebarMenuButton 
-                    className="h-9 group"
-                    isActive={selectedSourceName === source.name}
-                    onClick={() => onSelectSource(source)}
-                    tooltip={source.name}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 group-hover:scale-125 transition-transform shrink-0" />
-                    <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {reliableSources.map((source) => {
+                const favicon = getFaviconUrl(source.url);
+                return (
+                  <SidebarMenuItem key={source.id}>
+                    <SidebarMenuButton 
+                      className="h-9 group"
+                      isActive={selectedSourceName === source.name}
+                      onClick={() => onSelectSource(source)}
+                      tooltip={source.name}
+                    >
+                      <div className="w-5 h-5 rounded-md overflow-hidden bg-muted/50 mr-2 shrink-0 flex items-center justify-center border border-border/50">
+                        {favicon ? (
+                          <img src={favicon} alt="" className="w-3.5 h-3.5 object-contain" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -148,19 +168,28 @@ export function DashboardSidebar({
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {discoverySources.map((source) => (
-                <SidebarMenuItem key={source.id}>
-                  <SidebarMenuButton 
-                    className="h-9 group"
-                    isActive={selectedSourceName === source.name}
-                    onClick={() => onSelectSource(source)}
-                    tooltip={source.name}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 group-hover:scale-125 transition-transform shrink-0" />
-                    <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {discoverySources.map((source) => {
+                const favicon = getFaviconUrl(source.url);
+                return (
+                  <SidebarMenuItem key={source.id}>
+                    <SidebarMenuButton 
+                      className="h-9 group"
+                      isActive={selectedSourceName === source.name}
+                      onClick={() => onSelectSource(source)}
+                      tooltip={source.name}
+                    >
+                      <div className="w-5 h-5 rounded-md overflow-hidden bg-muted/50 mr-2 shrink-0 flex items-center justify-center border border-border/50">
+                        {favicon ? (
+                          <img src={favicon} alt="" className="w-3.5 h-3.5 object-contain" />
+                        ) : (
+                          <Globe className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
               {!user && discoverySources.length > 0 && (
                 <p className="px-4 py-2 text-[10px] text-muted-foreground italic group-data-[collapsible=icon]:hidden">
                   ログインしてカスタムソースを追加
