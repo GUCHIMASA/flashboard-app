@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -16,6 +16,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import Image from 'next/image';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 
 export default function Home() {
   const { user } = useUser();
@@ -28,6 +30,12 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // ハイドレーションエラー防止のため、クライアントサイドで初期化
+  useEffect(() => {
+    setLastUpdated(new Date());
+  }, []);
 
   // Firestoreからカスタムソースを取得
   const sourcesQuery = useMemo(() => {
@@ -106,6 +114,7 @@ export default function Home() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
+    setLastUpdated(new Date());
     setTimeout(() => setIsRefreshing(false), 1500);
   };
 
@@ -154,6 +163,15 @@ export default function Home() {
             <h2 className="font-headline text-lg font-bold text-foreground hidden sm:block">
               {headerTitle}
             </h2>
+            
+            {/* ライブインジケーター - 最新情報をアピール */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-primary/5 rounded-full border border-primary/10 animate-in fade-in slide-in-from-left-4 duration-1000">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <span className="text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1.5">
+                LIVE INSIGHTS <span className="text-muted-foreground/40">•</span> 
+                {lastUpdated ? format(lastUpdated, 'HH:mm:ss') : '--:--:--'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 flex-1 justify-end max-w-xl">
@@ -169,7 +187,7 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-9 w-9 border-border/30 rounded-xl hover:bg-secondary/50"
+              className="h-9 w-9 border-border/30 rounded-xl hover:bg-secondary/50 relative"
               onClick={handleRefresh}
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
@@ -186,7 +204,6 @@ export default function Home() {
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
                       <div className="relative h-[300px] md:h-[450px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl">
-                        {/* 背景画像 */}
                         <Image 
                           src={article.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'} 
                           alt={article.title}
@@ -194,10 +211,8 @@ export default function Home() {
                           className="object-cover"
                           priority
                         />
-                        {/* グラデーションオーバーレイ */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
                         
-                        {/* コンテンツ */}
                         <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-4xl">
                           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 border border-white/20 text-white">
                             <Sparkles className="w-3 h-3 text-amber-300" />
