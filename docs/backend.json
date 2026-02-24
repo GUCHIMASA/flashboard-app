@@ -13,6 +13,22 @@
       },
       "required": ["name", "url", "category"]
     },
+    "Article": {
+      "title": "記事",
+      "description": "RSSから取得された共通の記事情報",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "summary": { "type": "string" },
+        "url": { "type": "string" },
+        "sourceName": { "type": "string" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "imageUrl": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["title", "url", "sourceName", "publishedAt"]
+    },
     "Bookmark": {
       "title": "ブックマーク",
       "description": "ユーザーが保存した記事",
@@ -34,6 +50,10 @@
     "/users/{userId}/sources/{sourceId}": {
       "schema": "Source",
       "description": "ユーザー個別のカスタムニュースソース"
+    },
+    "/articles/{articleId}": {
+      "schema": "Article",
+      "description": "システム全体で共有されるRSS記事データ"
     },
     "/users/{userId}/bookmarks/{bookmarkId}": {
       "schema": "Bookmark",

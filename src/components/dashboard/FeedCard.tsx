@@ -1,20 +1,18 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, Loader2, BookmarkCheck, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, ArrowUpRight, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Article } from '@/app/lib/types';
-import { summarizeAggregatedArticleContent } from '@/ai/flows/summarize-aggregated-article-content-flow';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface FeedCardProps {
   article: Article;
@@ -24,40 +22,7 @@ export function FeedCard({ article }: FeedCardProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const [summary, setSummary] = useState<string | null>(article.summary || null);
-  const [loading, setLoading] = useState(!article.summary);
   const [isBookmarked, setIsBookmarked] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const autoSummarize = async () => {
-      // すでに要約がある場合は実行しない（生成コスト削減）
-      if (summary || !loading) return;
-      
-      try {
-        const result = await summarizeAggregatedArticleContent({
-          title: article.title,
-          content: article.content
-        });
-        
-        if (isMounted) {
-          setSummary(result.summary);
-          setLoading(false);
-          // 本来はここでFirestoreに要約を保存（キャッシュ）する処理を入れる
-          console.log(`Summary generated and cached for article: ${article.id}`);
-        }
-      } catch (error) {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    autoSummarize();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [article.id, article.title, article.content, summary, loading]);
 
   const handleBookmark = () => {
     if (!db || !user) {
@@ -73,7 +38,7 @@ export function FeedCard({ article }: FeedCardProps) {
       articleId: article.id,
       title: article.title,
       content: article.content,
-      summary: summary,
+      summary: article.summary,
       url: article.link,
       sourceName: article.sourceName,
       imageUrl: article.imageUrl || '',
@@ -97,7 +62,7 @@ export function FeedCard({ article }: FeedCardProps) {
       <CardHeader className="p-2.5 md:p-6 pb-1 md:pb-2">
         <div className="flex items-center justify-between mb-1.5 md:mb-4">
           <Badge variant="outline" className="bg-muted/30 text-[7px] md:text-[10px] uppercase tracking-wider md:tracking-widest font-bold border-transparent px-1.5 py-0 md:px-3 md:py-1 rounded-full shrink-0">
-            {categoryLabels[article.category] || article.category}
+            {categoryLabels[article.category] || article.category || 'ニュース'}
           </Badge>
           <span className="text-[7px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate ml-1">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
@@ -121,20 +86,14 @@ export function FeedCard({ article }: FeedCardProps) {
           
           <div className="flex items-center gap-1.5 mb-1 md:mb-2 text-primary relative z-10">
             <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.2em]">AI 要約インサイト</span>
-            {loading && <Loader2 className="w-2 md:w-2.5 h-2 md:h-2.5 animate-spin" />}
           </div>
 
-          {loading ? (
-            <div className="space-y-1.5 md:space-y-2">
-              <Skeleton className="h-2.5 md:h-3 w-full bg-primary/10" />
-              <Skeleton className="h-2.5 md:h-3 w-[80%] bg-primary/10" />
-            </div>
-          ) : summary ? (
+          {article.summary ? (
             <div className="text-[10px] md:text-sm text-foreground/90 leading-tight md:leading-snug font-medium relative z-10 animate-in fade-in duration-700 whitespace-pre-line">
-              {summary}
+              {article.summary}
             </div>
           ) : (
-            <p className="text-[9px] md:text-[10px] text-muted-foreground italic">解析できませんでした</p>
+            <p className="text-[9px] md:text-[10px] text-muted-foreground italic">要約を準備中、または利用できません</p>
           )}
         </div>
       </CardContent>

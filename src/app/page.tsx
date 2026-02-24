@@ -9,11 +9,11 @@ import { AdCard } from '@/components/dashboard/AdCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { INITIAL_SOURCES, MOCK_ARTICLES } from './lib/mock-data';
+import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
@@ -22,6 +22,7 @@ import { format, formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { syncRss } from '@/ai/flows/sync-rss-flow';
 
 export default function Home() {
   const { user } = useUser();
@@ -48,19 +49,12 @@ export default function Home() {
     });
   }, [api]);
 
+  // 購読ソースの取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
   }, [db, user]);
-
   const { data: customSources = [] } = useCollection(sourcesQuery);
-
-  const bookmarksQuery = useMemo(() => {
-    if (!db || !user) return null;
-    return collection(db, 'users', user.uid, 'bookmarks');
-  }, [db, user]);
-
-  const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
 
   const allSources = useMemo(() => [
     ...INITIAL_SOURCES, 
@@ -72,10 +66,24 @@ export default function Home() {
     }))
   ], [customSources]);
 
+  // 全記事の取得 (Firestoreのリアルタイムフィード)
+  const articlesQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(50));
+  }, [db]);
+  const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
+
+  // ブックマークの取得
+  const bookmarksQuery = useMemo(() => {
+    if (!db || !user) return null;
+    return collection(db, 'users', user.uid, 'bookmarks');
+  }, [db, user]);
+  const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
+
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
     id: b.id,
     title: b.title,
-    content: b.content || '内容がありません',
+    content: b.content || '',
     summary: b.summary,
     sourceName: b.sourceName,
     sourceUrl: '#',
@@ -85,7 +93,7 @@ export default function Home() {
     imageUrl: b.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'
   }));
 
-  const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : MOCK_ARTICLES;
+  const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : (firestoreArticles as Article[]);
 
   const filteredArticles = useMemo(() => {
     return displayArticles
@@ -101,19 +109,17 @@ export default function Home() {
           return false;
         }
         return true;
-      })
-      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+      });
   }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
 
-  // 表示されている記事の中で最も新しい公開日時を算出
   const latestUpdateDate = useMemo(() => {
     if (filteredArticles.length === 0) return null;
     return new Date(filteredArticles[0].publishedAt);
   }, [filteredArticles]);
 
   const heroArticles = useMemo(() => {
-    return MOCK_ARTICLES.slice(0, 5);
-  }, []);
+    return (firestoreArticles as Article[]).slice(0, 5);
+  }, [firestoreArticles]);
 
   const handleAddSource = (newSource: Omit<FeedSource, 'id'>) => {
     if (!db || !user) return;
@@ -123,7 +129,7 @@ export default function Home() {
     });
     toast({
       title: "ソースを追加しました",
-      description: `${newSource.name}が登録されました。`,
+      description: `${newSource.name}が登録されました。同期を開始してください。`,
     });
   };
 
@@ -132,19 +138,28 @@ export default function Home() {
     deleteDoc(doc(db, 'users', user.uid, 'sources', sourceId));
     toast({
       title: "ソースを削除しました",
-      description: "リストから削除されました。",
     });
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
+    
+    try {
+      const result = await syncRss({ sources: allSources });
       toast({
-        title: "最新の状態に更新しました",
-        description: "RSSフィードの同期が完了しました。",
+        title: "同期が完了しました",
+        description: `${result.addedCount}件の新しい記事を取得し、AI要約を生成しました。`,
       });
-    }, 1500);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "同期エラー",
+        description: "RSSの取得またはAI要約の生成中に問題が発生しました。",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleCategoryChange = (val: string) => {
@@ -197,7 +212,7 @@ export default function Home() {
             <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 transition-all">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span>LATEST UPDATE:</span> 
+                <span>LATEST:</span> 
                 <span>{latestUpdateDate ? format(latestUpdateDate, 'MM/dd HH:mm') : '--/-- --:--'}</span>
               </span>
             </div>
@@ -218,6 +233,7 @@ export default function Home() {
               size="icon" 
               className="h-8 w-8 md:h-9 md:w-9 border-border/30 rounded-xl hover:bg-secondary/50 relative shrink-0"
               onClick={handleRefresh}
+              disabled={isRefreshing}
             >
               <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
@@ -225,7 +241,7 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-2.5 md:p-6 space-y-4 md:space-y-8 max-w-7xl mx-auto w-full">
-          {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
+          {activeCategory === 'All' && !selectedSourceName && !searchQuery && heroArticles.length > 0 && (
             <section className="relative group">
               <Carousel 
                 className="w-full" 
@@ -261,7 +277,7 @@ export default function Home() {
                             {article.title}
                           </h1>
                           <p className="text-white/70 text-[10px] md:text-base mb-3 md:mb-6 line-clamp-1 xs:line-clamp-2 max-w-2xl font-medium hidden xs:block">
-                            {article.content}
+                            {article.summary || article.content}
                           </p>
                           <div className="flex items-center gap-2 md:gap-4">
                             <Button asChild className="bg-white text-black hover:bg-white/90 font-bold px-3 md:px-6 rounded-lg md:rounded-xl h-7 md:h-11 text-[10px] md:text-sm">
@@ -325,15 +341,19 @@ export default function Home() {
                     {(index + 1) % 4 === 0 && <AdCard />}
                   </React.Fragment>
                 ))
+              ) : articlesLoading || isRefreshing ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="aspect-[3/4] rounded-[2rem] bg-muted/20 animate-pulse" />
+                ))
               ) : (
                 <div className="col-span-full py-16 md:py-32 text-center">
                   <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-muted/30 text-muted-foreground mb-4 md:mb-6">
-                    <Filter className="w-6 h-6 md:w-10 md:h-10" />
+                    <RefreshCw className="w-6 h-6 md:w-10 md:h-10" />
                   </div>
-                  <h3 className="text-lg md:text-2xl font-bold mb-1 md:mb-2 tracking-tight">データが見つかりません</h3>
-                  <p className="text-muted-foreground text-[11px] md:text-sm max-w-xs mx-auto mb-6 md:mb-8 px-4">条件に合う記事が存在しないか、まだデータが同期されていません。</p>
-                  <Button variant="outline" className="rounded-lg md:rounded-xl px-6 md:px-8 text-xs h-8 md:h-10" onClick={() => {setSearchQuery(''); handleCategoryChange('All');}}>
-                    全データを表示
+                  <h3 className="text-lg md:text-2xl font-bold mb-1 md:mb-2 tracking-tight">記事がまだありません</h3>
+                  <p className="text-muted-foreground text-[11px] md:text-sm max-w-xs mx-auto mb-6 md:mb-8 px-4">更新ボタンを押して最新のRSSフィードを同期してください。</p>
+                  <Button variant="default" className="rounded-lg md:rounded-xl px-6 md:px-8 text-xs h-8 md:h-10" onClick={handleRefresh}>
+                    今すぐ同期する
                   </Button>
                 </div>
               )}
