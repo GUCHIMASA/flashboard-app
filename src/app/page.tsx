@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AdCard } from '@/components/dashboard/AdCard';
@@ -28,7 +27,7 @@ export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+  const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -49,7 +48,6 @@ export default function Home() {
     });
   }, [api]);
 
-  // 購読ソースの取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -66,14 +64,12 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 全記事の取得 (Firestoreのリアルタイムフィード)
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(50));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
-  // ブックマークの取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -129,7 +125,7 @@ export default function Home() {
     });
     toast({
       title: "ソースを追加しました",
-      description: `${newSource.name}が登録されました。同期を開始してください。`,
+      description: `${newSource.name}が登録されました。`,
     });
   };
 
@@ -149,13 +145,13 @@ export default function Home() {
       const result = await syncRss({ sources: allSources });
       toast({
         title: "同期が完了しました",
-        description: `${result.addedCount}件の新しい記事を取得し、AI要約を生成しました。`,
+        description: `${result.addedCount}件の最新情報を取得しました。`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "同期エラー",
-        description: "RSSの取得またはAI要約の生成中に問題が発生しました。",
+        description: "接続を確認してください。",
       });
     } finally {
       setIsRefreshing(false);
@@ -190,7 +186,7 @@ export default function Home() {
   }, [activeCategory, selectedSourceName]);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground w-full">
+    <div className="flex min-h-screen w-full">
       <DashboardSidebar 
         activeCategory={activeCategory} 
         selectedSourceName={selectedSourceName}
@@ -201,29 +197,29 @@ export default function Home() {
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 w-full bg-background/60 backdrop-blur-xl border-b border-border/30 px-3 md:px-6 h-14 md:h-16 flex items-center justify-between gap-2 md:gap-4">
-          <div className="flex items-center gap-2 md:gap-4">
-            <SidebarTrigger className="hover:bg-muted/50 transition-colors shrink-0" />
-            <div className="h-6 w-px bg-border/40 hidden xs:block" />
-            <h2 className="font-headline text-sm md:text-lg font-bold text-foreground truncate max-w-[80px] xs:max-w-none">
-              {headerTitle}
-            </h2>
-            
-            <div className="flex items-center gap-1 px-1.5 py-0.5 md:px-2 md:py-1 bg-primary/5 rounded-full border border-primary/10 transition-all">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <span className="text-[8px] md:text-[10px] font-bold text-primary/70 uppercase tracking-widest flex items-center gap-1">
-                <span>LATEST:</span> 
-                <span>{latestUpdateDate ? format(latestUpdateDate, 'MM/dd HH:mm') : '--/-- --:--'}</span>
-              </span>
+        <header className="sticky top-0 z-40 w-full glass-panel px-3 md:px-6 h-14 md:h-20 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 md:gap-5">
+            <SidebarTrigger className="hover:bg-white/10 transition-colors" />
+            <div className="h-8 w-px bg-white/10 hidden xs:block" />
+            <div className="flex flex-col">
+              <h2 className="font-headline text-sm md:text-xl font-black text-foreground truncate uppercase tracking-tight">
+                {headerTitle}
+              </h2>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  LATEST UPDATE: {latestUpdateDate ? format(latestUpdateDate, 'HH:mm') : '--:--'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 md:gap-2 flex-1 justify-end max-w-xl">
-            <div className="relative w-full max-w-[120px] xs:max-w-xs sm:max-w-md">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 md:w-4 md:h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 flex-1 justify-end max-w-xl">
+            <div className="relative w-full max-w-[120px] xs:max-w-xs group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                className="pl-7 md:pl-10 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary h-8 md:h-9 rounded-xl transition-all hover:bg-muted/50 text-[11px] md:text-sm" 
-                placeholder="検索..." 
+                className="pl-10 bg-white/5 border-white/5 focus-visible:ring-1 focus-visible:ring-primary h-9 md:h-11 rounded-full transition-all hover:bg-white/10 text-xs md:text-sm" 
+                placeholder="インサイトを検索..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -231,18 +227,18 @@ export default function Home() {
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-8 w-8 md:h-9 md:w-9 border-border/30 rounded-xl hover:bg-secondary/50 relative shrink-0"
+              className="h-9 w-9 md:h-11 md:w-11 border-white/5 bg-white/5 rounded-full hover:bg-primary/20 hover:text-primary transition-all relative shrink-0"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
-              <RefreshCw className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </header>
 
-        <div className="flex-1 p-2.5 md:p-6 space-y-4 md:space-y-8 max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-2.5 md:p-8 space-y-6 md:space-y-12 max-w-[1600px] mx-auto w-full">
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && heroArticles.length > 0 && (
-            <section className="relative group">
+            <section className="relative">
               <Carousel 
                 className="w-full" 
                 opts={{ loop: true }}
@@ -252,59 +248,56 @@ export default function Home() {
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[200px] xs:h-[280px] md:h-[450px] w-full overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl">
+                      <div className="relative h-[220px] xs:h-[320px] md:h-[600px] w-full overflow-hidden rounded-[2rem] md:rounded-[3rem] shadow-2xl group/hero">
                         <Image 
-                          src={article.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'} 
+                          src={article.imageUrl || 'https://picsum.photos/seed/placeholder/1200/800'} 
                           alt={article.title}
                           fill
-                          className="object-cover"
+                          className="object-cover transition-transform duration-[10s] group-hover/hero:scale-110"
                           priority
+                          data-ai-hint="futuristic technology"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden md:block" />
                         
-                        <div className="absolute bottom-0 left-0 p-4 md:p-12 w-full max-w-4xl">
-                          <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-4">
-                            <div className="inline-flex items-center gap-1 md:gap-2 bg-white/10 backdrop-blur-md px-2 py-0.5 md:px-3 md:py-1 rounded-full text-[7px] md:text-[10px] font-bold uppercase tracking-[0.2em] border border-white/20 text-white">
-                              <Sparkles className="w-2 h-2 md:w-3 md:h-3 text-amber-300" />
-                              注目
+                        <div className="absolute bottom-0 left-0 p-5 md:p-20 w-full md:max-w-5xl">
+                          <div className="flex items-center gap-3 mb-3 md:mb-6 animate-in slide-in-from-bottom duration-500">
+                            <div className="inline-flex items-center gap-2 bg-primary px-3 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white">
+                              <Zap className="w-3 h-3" />
+                              FEATURED INSIGHT
                             </div>
-                            <div className="flex items-center gap-1 text-white/60 text-[7px] md:text-[10px] font-bold uppercase tracking-widest">
-                              <Clock className="w-2 h-2 md:w-3 md:h-3" />
+                            <div className="text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
                               {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
                             </div>
                           </div>
-                          <h1 className="font-headline text-base xs:text-lg md:text-4xl lg:text-5xl font-bold mb-1.5 md:mb-4 tracking-tight leading-[1.2] text-white line-clamp-2">
+                          <h1 className="font-headline text-xl xs:text-3xl md:text-6xl font-black mb-3 md:mb-6 tracking-tighter leading-[1] text-white animate-in slide-in-from-bottom duration-700 delay-100">
                             {article.title}
                           </h1>
-                          <p className="text-white/70 text-[10px] md:text-base mb-3 md:mb-6 line-clamp-1 xs:line-clamp-2 max-w-2xl font-medium hidden xs:block">
+                          <p className="text-white/70 text-xs md:text-xl mb-6 md:mb-10 line-clamp-2 max-w-3xl font-medium hidden xs:block animate-in slide-in-from-bottom duration-700 delay-200">
                             {article.summary || article.content}
                           </p>
-                          <div className="flex items-center gap-2 md:gap-4">
-                            <Button asChild className="bg-white text-black hover:bg-white/90 font-bold px-3 md:px-6 rounded-lg md:rounded-xl h-7 md:h-11 text-[10px] md:text-sm">
+                          <div className="flex items-center gap-4 animate-in slide-in-from-bottom duration-700 delay-300">
+                            <Button asChild size="lg" className="bg-white text-black hover:bg-primary hover:text-white transition-all font-black px-8 rounded-full h-10 md:h-14">
                               <a href={article.link} target="_blank" rel="noopener noreferrer">
-                                詳しく読む <ArrowRight className="w-3 h-3 md:w-4 md:h-4 ml-1 md:ml-2" />
+                                EXPLORE <ArrowRight className="w-5 h-5 ml-2" />
                               </a>
                             </Button>
-                            <span className="text-white/50 text-[7px] md:text-xs font-bold uppercase tracking-widest truncate">{article.sourceName}</span>
                           </div>
                         </div>
                       </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-2 md:left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-7 w-7 md:h-8 md:w-8" />
-                <CarouselNext className="right-2 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-7 w-7 md:h-8 md:w-8" />
                 
-                <div className="absolute bottom-3 right-4 flex gap-1 z-10 md:bottom-8 md:right-12">
+                <div className="absolute bottom-6 right-8 flex gap-2 z-10 md:bottom-12 md:right-20">
                   {Array.from({ length: count }).map((_, index) => (
                     <button
                       key={index}
                       className={cn(
-                        "w-1 h-1 md:w-1.5 md:h-1.5 rounded-full transition-all duration-300",
-                        current === index ? "bg-white w-3 md:w-4" : "bg-white/30"
+                        "h-1.5 rounded-full transition-all duration-500",
+                        current === index ? "bg-primary w-12" : "bg-white/20 w-4 hover:bg-white/40"
                       )}
                       onClick={() => api?.scrollTo(index)}
-                      aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}
                 </div>
@@ -313,47 +306,53 @@ export default function Home() {
           )}
 
           <section>
-            <div className="mb-4 md:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full sm:w-auto">
-                <TabsList className="bg-muted/40 p-0.5 md:p-1 rounded-lg md:rounded-xl w-full sm:w-auto">
-                  <TabsTrigger value="All" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">タイムライン</TabsTrigger>
-                  <TabsTrigger value="Reliable" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">信頼済み</TabsTrigger>
-                  <TabsTrigger value="Discovery" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs">発見</TabsTrigger>
-                  <TabsTrigger value="Bookmarks" className="flex-1 sm:flex-none rounded-md md:rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-[10px] md:text-xs flex items-center gap-1 justify-center">
-                    <Bookmark className="w-3 h-3" />
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+            <div className="mb-6 md:mb-12 flex flex-col md:flex-row items-start md:items-end justify-between gap-6">
+              <div className="space-y-2">
+                <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tighter">Insights Stream</h3>
+                <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full">
+                  <TabsList className="bg-white/5 p-1 rounded-full border border-white/5 h-12">
+                    <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">All</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">Reliable</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">Discovery</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-white">
+                      <Bookmark className="w-4 h-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               
-              <div className="flex items-center gap-2 text-[9px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest ml-auto sm:ml-0">
-                <div className="flex items-center gap-1">
-                  <Filter className="w-2.5 h-2.5 md:w-3 md:h-3" />
-                  <span>{filteredArticles.length} インサイト</span>
+              <div className="flex items-center gap-4 text-[10px] font-black text-muted-foreground uppercase tracking-widest pb-2">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-3 h-3 text-primary" />
+                  <span>{filteredArticles.length} ACTIVE INSIGHTS</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
               {filteredArticles.length > 0 ? (
                 filteredArticles.map((article, index) => (
-                  <React.Fragment key={article.id}>
+                  <div 
+                    key={article.id} 
+                    className="animate-in fade-in slide-in-from-bottom-4 duration-700"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
                     <FeedCard article={article} />
-                    {(index + 1) % 4 === 0 && <AdCard />}
-                  </React.Fragment>
+                  </div>
                 ))
               ) : articlesLoading || isRefreshing ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="aspect-[3/4] rounded-[2rem] bg-muted/20 animate-pulse" />
+                Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-white/5 animate-pulse" />
                 ))
               ) : (
-                <div className="col-span-full py-16 md:py-32 text-center">
-                  <div className="inline-flex items-center justify-center w-12 h-12 md:w-20 md:h-20 rounded-2xl md:rounded-3xl bg-muted/30 text-muted-foreground mb-4 md:mb-6">
-                    <RefreshCw className="w-6 h-6 md:w-10 md:h-10" />
+                <div className="col-span-full py-32 text-center glass-panel rounded-[3rem]">
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 text-primary mb-8 animate-float">
+                    <RefreshCw className="w-10 h-10" />
                   </div>
-                  <h3 className="text-lg md:text-2xl font-bold mb-1 md:mb-2 tracking-tight">記事がまだありません</h3>
-                  <p className="text-muted-foreground text-[11px] md:text-sm max-w-xs mx-auto mb-6 md:mb-8 px-4">更新ボタンを押して最新のRSSフィードを同期してください。</p>
-                  <Button variant="default" className="rounded-lg md:rounded-xl px-6 md:px-8 text-xs h-8 md:h-10" onClick={handleRefresh}>
-                    今すぐ同期する
+                  <h3 className="text-3xl font-black mb-3 tracking-tighter uppercase">No Insights Found</h3>
+                  <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-10">AIエンジンを起動して、世界中の最新ニュースを収集・解析しましょう。</p>
+                  <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh}>
+                    INITIALIZE SYNC
                   </Button>
                 </div>
               )}

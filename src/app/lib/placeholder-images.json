@@ -1,16 +1,21 @@
-
 {
   "placeholderImages": [
     {
       "id": "ai-hero-1",
-      "description": "Neural network visualization",
-      "imageUrl": "https://picsum.photos/seed/ai1/800/400",
+      "description": "Futuristic neural network visualization with neon lights",
+      "imageUrl": "https://picsum.photos/seed/ai_synapse_1/1200/800",
       "imageHint": "neural network"
     },
     {
-      "id": "ai-chip",
-      "description": "AI Processor",
-      "imageUrl": "https://picsum.photos/seed/ai2/400/300",
+      "id": "ai-hero-2",
+      "description": "Cyberpunk city skyline with holographic data",
+      "imageUrl": "https://picsum.photos/seed/ai_synapse_2/1200/800",
+      "imageHint": "cyberpunk city"
+    },
+    {
+      "id": "ai-hero-3",
+      "description": "Abstract AI processor chip glowing in the dark",
+      "imageUrl": "https://picsum.photos/seed/ai_synapse_3/1200/800",
       "imageHint": "ai chip"
     }
   ]

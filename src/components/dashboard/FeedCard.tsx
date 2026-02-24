@@ -1,10 +1,9 @@
-
 "use client";
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, ArrowUpRight, Sparkles } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, ArrowUpRight, Sparkles, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,64 +57,68 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   return (
-    <Card className="group flex flex-col h-full border-border/40 hover:border-primary/40 transition-all duration-500 hover:shadow-[0_15px_40px_rgba(0,0,0,0.06)] bg-card rounded-[1rem] md:rounded-[2rem] overflow-hidden">
-      <CardHeader className="p-2.5 md:p-6 pb-1 md:pb-2">
-        <div className="flex items-center justify-between mb-1.5 md:mb-4">
-          <Badge variant="outline" className="bg-muted/30 text-[7px] md:text-[10px] uppercase tracking-wider md:tracking-widest font-bold border-transparent px-1.5 py-0 md:px-3 md:py-1 rounded-full shrink-0">
-            {categoryLabels[article.category] || article.category || 'ニュース'}
+    <Card className="group relative flex flex-col h-full border-white/5 bg-card/40 backdrop-blur-sm hover:bg-card/60 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
+      {/* Decorative Gradient Background */}
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
+      
+      <CardHeader className="p-3 md:p-5 pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <Badge variant="secondary" className="bg-primary/10 text-primary-foreground text-[8px] md:text-[10px] uppercase font-bold border-none px-2 py-0.5 rounded-md">
+            {categoryLabels[article.category] || article.category}
           </Badge>
-          <span className="text-[7px] md:text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest truncate ml-1">
+          <span className="text-[8px] md:text-[10px] font-medium text-muted-foreground/80">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
           </span>
         </div>
-        <div className="space-y-0.5 md:space-y-3">
-          <div className="flex items-center gap-1 md:gap-2">
-            <span className="text-[8px] md:text-xs font-bold text-primary tracking-tight truncate">{article.sourceName}</span>
+        <div className="space-y-1">
+          <div className="flex items-center gap-1">
+            <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter">{article.sourceName}</span>
           </div>
-          <h3 className="font-headline text-[11px] md:text-base font-bold leading-[1.3] group-hover:text-primary transition-colors line-clamp-2 tracking-tight">
+          <h3 className="font-headline text-[12px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
             {article.title}
           </h3>
         </div>
       </CardHeader>
       
-      <CardContent className="px-2.5 md:px-6 py-1 md:py-2 flex-grow">
-        <div className="bg-primary/5 border border-primary/10 rounded-[0.8rem] md:rounded-[1.5rem] p-2 md:p-5 mt-0.5 md:mt-2 relative overflow-hidden group/summary min-h-[70px] md:min-h-[90px] flex flex-col justify-center">
-          <div className="absolute top-0 right-0 p-1 md:p-2 opacity-10 pointer-events-none">
-            <Sparkles className="w-4 h-4 md:w-6 md:h-6 text-primary" />
-          </div>
+      <CardContent className="px-3 md:px-5 py-2 flex-grow">
+        <div className="relative bg-white/5 border border-white/5 rounded-2xl p-3 md:p-5 overflow-hidden group/summary">
+          {/* Neon Glow Effect */}
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
           
-          <div className="flex items-center gap-1.5 mb-1 md:mb-2 text-primary relative z-10">
-            <span className="text-[7px] md:text-[9px] font-bold uppercase tracking-[0.2em]">AI 要約インサイト</span>
+          <div className="flex items-center gap-2 mb-2 text-primary">
+            <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
+            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em]">AI 要約インサイト</span>
           </div>
 
           {article.summary ? (
-            <div className="text-[10px] md:text-sm text-foreground/90 leading-tight md:leading-snug font-medium relative z-10 animate-in fade-in duration-700 whitespace-pre-line">
+            <div className="text-[11px] md:text-[14px] text-foreground/90 leading-relaxed font-medium whitespace-pre-line relative z-10">
               {article.summary}
             </div>
           ) : (
-            <p className="text-[9px] md:text-[10px] text-muted-foreground italic">要約を準備中、または利用できません</p>
+            <p className="text-[10px] text-muted-foreground italic">解析中...</p>
           )}
         </div>
       </CardContent>
 
-      <CardFooter className="px-2.5 md:px-6 py-2 md:py-6 flex items-center justify-between border-t border-border/10 mt-1.5 md:mt-2">
-        <div className="flex items-center gap-0.5">
-          <Button variant="ghost" size="icon" className="h-6 w-6 md:h-7 md:w-7 rounded-full hover:bg-muted">
-            <Share2 className="h-3 w-3 md:h-3.5 md:w-3.5 text-muted-foreground" />
+      <CardFooter className="px-3 md:px-5 py-3 md:py-4 flex items-center justify-between border-t border-white/5">
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/5">
+            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            className={cn("h-6 w-6 md:h-7 md:w-7 rounded-full transition-all", isBookmarked ? "text-primary bg-primary/5" : "text-muted-foreground hover:bg-muted")}
+            className={cn("h-8 w-8 rounded-full transition-all", isBookmarked ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-white/5")}
             onClick={handleBookmark}
             disabled={isBookmarked}
           >
-            {isBookmarked ? <BookmarkCheck className="h-3 md:h-3.5 w-3 md:w-3.5" /> : <Bookmark className="h-3 md:h-3.5 w-3 md:w-3.5" />}
+            {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
           </Button>
         </div>
-        <Button asChild variant="ghost" size="sm" className="text-[9px] md:text-xs font-bold hover:text-primary p-0 h-auto">
-          <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-0.5 md:gap-1.5">
-            全文 <ArrowUpRight className="h-2.5 w-2.5 md:h-3 w-3" />
+        <Button asChild variant="link" size="sm" className="text-[10px] md:text-xs font-bold text-primary p-0 h-auto hover:no-underline group/link">
+          <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+            全文を読む
+            <ExternalLink className="h-3 w-3 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" />
           </a>
         </Button>
       </CardFooter>

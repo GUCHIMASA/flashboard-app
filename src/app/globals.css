@@ -1,38 +1,29 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 240 20% 94%;
-    --foreground: 240 10% 10%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-    --primary: 240 60% 40%;
+    --background: 240 25% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 25% 7%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 25% 7%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 270 90% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 90%;
-    --secondary-foreground: 240 60% 40%;
-    --muted: 240 10% 90%;
-    --muted-foreground: 240 10% 40%;
-    --accent: 205 73% 51%;
+    --secondary: 240 20% 15%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 20% 12%;
+    --muted-foreground: 240 10% 70%;
+    --accent: 210 100% 50%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 10% 85%;
-    --input: 240 10% 85%;
-    --ring: 240 60% 40%;
-    --radius: 0.75rem;
-    --sidebar-background: 240 20% 92%;
-    --sidebar-foreground: 240 10% 20%;
-    --sidebar-primary: 240 60% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 10% 85%;
-    --sidebar-accent-foreground: 240 60% 40%;
-    --sidebar-border: 240 10% 80%;
-    --sidebar-ring: 240 60% 40%;
+    --border: 240 20% 15%;
+    --input: 240 20% 15%;
+    --ring: 270 90% 65%;
+    --radius: 1rem;
   }
 }
 
@@ -41,9 +32,31 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground selection:bg-primary/30;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(270, 90%, 65%, 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(210, 100%, 50%, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
+    @apply font-headline tracking-tight;
   }
+}
+
+.glass-panel {
+  @apply bg-card/60 backdrop-blur-xl border border-white/5;
+}
+
+.neo-blur {
+  box-shadow: 0 0 20px -5px hsla(var(--primary), 0.3);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
