@@ -14,16 +14,20 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
   const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+  const [count, setCount] = useState(0);
   
   // フィルタリング用の状態
   const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
@@ -33,6 +37,18 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // カルーセルの状態監視
+  useEffect(() => {
+    if (!api) return;
+
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
 
   // ハイドレーションエラー防止のため、クライアントサイドで初期化
   useEffect(() => {
@@ -206,6 +222,7 @@ export default function Home() {
                 className="w-full" 
                 opts={{ loop: true }}
                 plugins={[autoplay.current]}
+                setApi={setApi}
               >
                 <CarouselContent>
                   {heroArticles.map((article) => (
@@ -252,6 +269,21 @@ export default function Home() {
                 </CarouselContent>
                 <CarouselPrevious className="left-4 md:left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
                 <CarouselNext className="right-4 md:right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40 h-8 w-8" />
+                
+                {/* ページネーションインジケーター */}
+                <div className="absolute bottom-4 right-8 flex gap-1.5 z-10 md:bottom-8 md:right-12">
+                  {Array.from({ length: count }).map((_, index) => (
+                    <button
+                      key={index}
+                      className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                        current === index ? "bg-white w-4" : "bg-white/30"
+                      )}
+                      onClick={() => api?.scrollTo(index)}
+                      aria-label={`Go to slide ${index + 1}`}
+                    />
+                  ))}
+                </div>
               </Carousel>
             </section>
           )}
