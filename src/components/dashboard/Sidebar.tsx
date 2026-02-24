@@ -12,7 +12,8 @@ import {
   LogIn,
   LogOut,
   Bookmark,
-  Globe
+  Globe,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Category, FeedSource } from '@/app/lib/types';
@@ -32,11 +33,13 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
   selectedSourceName: string | null;
   onSelectSource: (source: FeedSource | 'All') => void;
+  onDeleteSource?: (sourceId: string) => void;
   sources: FeedSource[];
   onAddSource: () => void;
 }
@@ -45,6 +48,7 @@ export function DashboardSidebar({
   activeCategory, 
   selectedSourceName,
   onSelectSource, 
+  onDeleteSource,
   sources,
   onAddSource
 }: DashboardSidebarProps) {
@@ -73,7 +77,8 @@ export function DashboardSidebar({
   };
 
   const reliableSources = sources.filter(s => s.category === 'Reliable');
-  const discoverySources = sources.filter(s => s.category === 'Discovery' || s.category === 'Custom');
+  const discoverySources = sources.filter(s => s.category === 'Discovery');
+  const customSources = sources.filter(s => s.category === 'Custom');
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/50 bg-sidebar/50 backdrop-blur-xl">
@@ -123,7 +128,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 flex items-center justify-between">
-            <span>一次ソース (信頼済み)</span>
+            <span>一次ソース</span>
             <ShieldCheck className="w-3 h-3 text-emerald-500" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -156,15 +161,8 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 flex items-center justify-between">
-            <span>発見ソース (情報サイト)</span>
-            <div className="flex items-center gap-1">
-              {user && (
-                <button onClick={(e) => { e.stopPropagation(); onAddSource(); }} className="hover:text-primary transition-colors p-1">
-                  <Plus className="w-3 h-3" />
-                </button>
-              )}
-              <Sparkles className="w-3 h-3 text-amber-500" />
-            </div>
+            <span>発見ソース</span>
+            <Sparkles className="w-3 h-3 text-amber-500" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -190,9 +188,69 @@ export function DashboardSidebar({
                   </SidebarMenuItem>
                 );
               })}
-              {!user && discoverySources.length > 0 && (
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-4 text-xs font-bold uppercase tracking-widest text-muted-foreground/60 mb-2 flex items-center justify-between">
+            <span>マイソース</span>
+            <div className="flex items-center gap-1">
+              {user && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
+                  className="hover:text-primary transition-colors p-1 bg-primary/10 rounded-md"
+                >
+                  <Plus className="w-3.5 h-3.5 text-primary" />
+                </button>
+              )}
+            </div>
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {customSources.map((source) => {
+                const favicon = getFaviconUrl(source.url);
+                return (
+                  <SidebarMenuItem key={source.id}>
+                    <div className="flex items-center group/item px-2">
+                      <SidebarMenuButton 
+                        className="h-9 flex-1"
+                        isActive={selectedSourceName === source.name}
+                        onClick={() => onSelectSource(source)}
+                        tooltip={source.name}
+                      >
+                        <div className="w-5 h-5 rounded-md overflow-hidden bg-muted/50 mr-2 shrink-0 flex items-center justify-center border border-border/50">
+                          {favicon ? (
+                            <img src={favicon} alt="" className="w-3.5 h-3.5 object-contain" />
+                          ) : (
+                            <Globe className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </div>
+                        <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
+                      </SidebarMenuButton>
+                      
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onDeleteSource) onDeleteSource(source.id);
+                        }}
+                        className="opacity-0 group-hover/item:opacity-100 p-1.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all ml-1"
+                        title="削除"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </SidebarMenuItem>
+                );
+              })}
+              {user && customSources.length === 0 && (
                 <p className="px-4 py-2 text-[10px] text-muted-foreground italic group-data-[collapsible=icon]:hidden">
-                  ログインしてカスタムソースを追加
+                  独自のフィードを追加
+                </p>
+              )}
+              {!user && (
+                <p className="px-4 py-2 text-[10px] text-muted-foreground italic group-data-[collapsible=icon]:hidden">
+                  ログインしてマイソースを追加
                 </p>
               )}
             </SidebarMenu>

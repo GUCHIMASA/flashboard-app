@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -12,7 +13,7 @@ import { INITIAL_SOURCES, MOCK_ARTICLES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
@@ -20,10 +21,12 @@ import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 5000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -117,6 +120,19 @@ export default function Home() {
       ...newSource,
       createdAt: serverTimestamp(),
     });
+    toast({
+      title: "ソースを追加しました",
+      description: `${newSource.name}が登録されました。`,
+    });
+  };
+
+  const handleDeleteSource = (sourceId: string) => {
+    if (!db || !user) return;
+    deleteDoc(doc(db, 'users', user.uid, 'sources', sourceId));
+    toast({
+      title: "ソースを削除しました",
+      description: "リストから削除されました。",
+    });
   };
 
   const handleRefresh = () => {
@@ -158,6 +174,7 @@ export default function Home() {
         activeCategory={activeCategory} 
         selectedSourceName={selectedSourceName}
         onSelectSource={handleSourceSelect}
+        onDeleteSource={handleDeleteSource}
         sources={allSources}
         onAddSource={() => setIsAddSourceOpen(true)}
       />
@@ -300,7 +317,6 @@ export default function Home() {
                 filteredArticles.map((article, index) => (
                   <React.Fragment key={article.id}>
                     <FeedCard article={article} />
-                    {/* 4記事ごとに広告カードを挿入 */}
                     {(index + 1) % 4 === 0 && <AdCard />}
                   </React.Fragment>
                 ))
