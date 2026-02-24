@@ -1,3 +1,4 @@
+
 import { Article, FeedSource } from './types';
 
 export const INITIAL_SOURCES: FeedSource[] = [
@@ -18,7 +19,8 @@ export const MOCK_ARTICLES: Article[] = [
     sourceUrl: 'https://anthropic.com',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     category: 'Reliable',
-    link: 'https://www.anthropic.com/news/claude-3-5-sonnet'
+    link: 'https://www.anthropic.com/news/claude-3-5-sonnet',
+    imageUrl: 'https://picsum.photos/seed/anthropic/800/400'
   },
   {
     id: 'a2',
@@ -28,7 +30,8 @@ export const MOCK_ARTICLES: Article[] = [
     sourceUrl: 'https://openai.com',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     category: 'Reliable',
-    link: 'https://openai.com/index/hello-gpt-4o/'
+    link: 'https://openai.com/index/hello-gpt-4o/',
+    imageUrl: 'https://picsum.photos/seed/openai/800/400'
   },
   {
     id: 'a3',
@@ -38,7 +41,8 @@ export const MOCK_ARTICLES: Article[] = [
     sourceUrl: 'https://deepmind.google',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
     category: 'Reliable',
-    link: 'https://deepmind.google/technologies/alphafold-3/'
+    link: 'https://deepmind.google/technologies/alphafold-3/',
+    imageUrl: 'https://picsum.photos/seed/deepmind/800/400'
   },
   {
     id: 'a4',
@@ -48,7 +52,8 @@ export const MOCK_ARTICLES: Article[] = [
     sourceUrl: 'https://ai.meta.com',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     category: 'Reliable',
-    link: 'https://ai.meta.com/blog/meta-llama-3/'
+    link: 'https://ai.meta.com/blog/meta-llama-3/',
+    imageUrl: 'https://picsum.photos/seed/metaai/800/400'
   },
   {
     id: 'a5',
@@ -58,6 +63,7 @@ export const MOCK_ARTICLES: Article[] = [
     sourceUrl: 'https://producthunt.com',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
     category: 'Discovery',
-    link: 'https://producthunt.com'
+    link: 'https://producthunt.com',
+    imageUrl: 'https://picsum.photos/seed/videoai/800/400'
   }
 ];

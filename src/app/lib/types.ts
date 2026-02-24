@@ -19,4 +19,5 @@ export interface Article {
   publishedAt: string;
   category: Category;
   link: string;
+  imageUrl?: string;
 }

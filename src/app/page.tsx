@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -13,6 +14,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import Image from 'next/image';
 
 export default function Home() {
   const { user } = useUser();
@@ -63,7 +66,8 @@ export default function Home() {
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     category: 'Reliable', 
-    link: b.url
+    link: b.url,
+    imageUrl: b.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'
   }));
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : MOCK_ARTICLES;
@@ -72,15 +76,12 @@ export default function Home() {
   const filteredArticles = useMemo(() => {
     return displayArticles
       .filter(a => {
-        // カテゴリによる絞り込み（タブ）
         if (activeCategory !== 'All' && activeCategory !== 'Bookmarks' && a.category !== activeCategory) {
           return false;
         }
-        // 特定のソース名による絞り込み（サイドバー）
         if (selectedSourceName && a.sourceName !== selectedSourceName) {
           return false;
         }
-        // 検索クエリによる絞り込み
         const searchTarget = `${a.title} ${a.content} ${a.sourceName}`.toLowerCase();
         if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) {
           return false;
@@ -89,6 +90,11 @@ export default function Home() {
       })
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
+
+  // ヒーロー用の最新5記事
+  const heroArticles = useMemo(() => {
+    return MOCK_ARTICLES.slice(0, 5);
+  }, []);
 
   const handleAddSource = (newSource: Omit<FeedSource, 'id'>) => {
     if (!db || !user) return;
@@ -105,7 +111,7 @@ export default function Home() {
 
   const handleCategoryChange = (val: string) => {
     setActiveCategory(val as any);
-    setSelectedSourceName(null); // カテゴリ切り替え時は個別ソース選択をリセット
+    setSelectedSourceName(null);
   };
 
   const handleSourceSelect = (source: FeedSource | 'All') => {
@@ -172,28 +178,53 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-6 space-y-8 max-w-7xl mx-auto w-full">
-          {/* ヒーローセクション */}
+          {/* ヒーローセクション - カルーセル表示 */}
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
-            <section className="relative overflow-hidden rounded-3xl bg-primary shadow-2xl shadow-primary/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-accent opacity-90" />
-              <div className="relative z-10 p-8 md:p-12 text-primary-foreground max-w-3xl">
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-lg px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-6 border border-white/10">
-                  <Sparkles className="w-3 h-3 text-amber-300" />
-                  次世代の情報集約ツール
-                </div>
-                <h1 className="font-headline text-3xl md:text-5xl font-bold mb-6 tracking-tight leading-[1.1]">
-                  知性を整理し、<br/><span className="text-white/70">本質を突き止める。</span>
-                </h1>
-                <p className="text-primary-foreground/70 text-base md:text-lg mb-8 leading-relaxed font-medium">
-                  グローバルなAIニュースをリアルタイムでキャッチ。
-                  Geminiが複雑な文脈を読み解き、あなたに最適なエッセンスを届けます。
-                </p>
-                <div className="flex flex-wrap gap-4">
-                  <Button className="bg-white text-primary hover:bg-white/90 font-bold px-8 rounded-xl h-12 shadow-lg">
-                    最新をチェック
-                  </Button>
-                </div>
-              </div>
+            <section className="relative group">
+              <Carousel className="w-full" opts={{ loop: true }}>
+                <CarouselContent>
+                  {heroArticles.map((article) => (
+                    <CarouselItem key={article.id}>
+                      <div className="relative h-[300px] md:h-[450px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl">
+                        {/* 背景画像 */}
+                        <Image 
+                          src={article.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'} 
+                          alt={article.title}
+                          fill
+                          className="object-cover"
+                          priority
+                        />
+                        {/* グラデーションオーバーレイ */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                        
+                        {/* コンテンツ */}
+                        <div className="absolute bottom-0 left-0 p-8 md:p-12 w-full max-w-4xl">
+                          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] mb-4 border border-white/20 text-white">
+                            <Sparkles className="w-3 h-3 text-amber-300" />
+                            注目ニュース
+                          </div>
+                          <h1 className="font-headline text-2xl md:text-4xl lg:text-5xl font-bold mb-4 tracking-tight leading-[1.2] text-white">
+                            {article.title}
+                          </h1>
+                          <p className="text-white/70 text-sm md:text-base mb-6 line-clamp-2 max-w-2xl font-medium">
+                            {article.content}
+                          </p>
+                          <div className="flex items-center gap-4">
+                            <Button asChild className="bg-white text-black hover:bg-white/90 font-bold px-6 rounded-xl h-11">
+                              <a href={article.link} target="_blank" rel="noopener noreferrer">
+                                詳しく読む <ArrowRight className="w-4 h-4 ml-2" />
+                              </a>
+                            </Button>
+                            <span className="text-white/50 text-xs font-bold uppercase tracking-widest">{article.sourceName}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="left-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40" />
+                <CarouselNext className="right-6 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 border-none text-white hover:bg-black/40" />
+              </Carousel>
             </section>
           )}
 
