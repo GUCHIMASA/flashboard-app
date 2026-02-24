@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark, Sidebar as SidebarIcon } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, BrainCircuit, Bookmark } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -18,11 +18,15 @@ export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
   
+  // フィルタリング用の状態
   const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
+  const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Firestoreからカスタムソースを取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -30,6 +34,7 @@ export default function Home() {
 
   const { data: customSources = [] } = useCollection(sourcesQuery);
 
+  // Firestoreからブックマークを取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -37,12 +42,16 @@ export default function Home() {
 
   const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
 
-  const allSources = [...INITIAL_SOURCES, ...customSources.map(s => ({
-    id: s.id,
-    name: s.name,
-    url: s.url,
-    category: 'Custom' as Category
-  }))];
+  // すべてのソースを統合
+  const allSources = useMemo(() => [
+    ...INITIAL_SOURCES, 
+    ...customSources.map(s => ({
+      id: s.id,
+      name: s.name,
+      url: s.url,
+      category: 'Custom' as Category
+    }))
+  ], [customSources]);
 
   // ブックマークデータをArticle形式に変換
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
@@ -53,20 +62,33 @@ export default function Home() {
     sourceName: b.sourceName,
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Reliable', // 表示上のカテゴリ
+    category: 'Reliable', 
     link: b.url
   }));
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : MOCK_ARTICLES;
 
-  const filteredArticles = displayArticles
-    .filter(a => activeCategory === 'All' || activeCategory === 'Bookmarks' || a.category === activeCategory)
-    .filter(a => 
-      a.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      a.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      a.sourceName.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  // フィルタリングロジックの統合
+  const filteredArticles = useMemo(() => {
+    return displayArticles
+      .filter(a => {
+        // カテゴリによる絞り込み（タブ）
+        if (activeCategory !== 'All' && activeCategory !== 'Bookmarks' && a.category !== activeCategory) {
+          return false;
+        }
+        // 特定のソース名による絞り込み（サイドバー）
+        if (selectedSourceName && a.sourceName !== selectedSourceName) {
+          return false;
+        }
+        // 検索クエリによる絞り込み
+        const searchTarget = `${a.title} ${a.content} ${a.sourceName}`.toLowerCase();
+        if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
 
   const handleAddSource = (newSource: Omit<FeedSource, 'id'>) => {
     if (!db || !user) return;
@@ -81,19 +103,39 @@ export default function Home() {
     setTimeout(() => setIsRefreshing(false), 1500);
   };
 
-  const categoryLabels: Record<string, string> = {
-    'All': 'タイムライン',
-    'Reliable': '信頼済みソース',
-    'Discovery': '発見ソース',
-    'Custom': 'カスタムソース',
-    'Bookmarks': 'ブックマーク一覧'
+  const handleCategoryChange = (val: string) => {
+    setActiveCategory(val as any);
+    setSelectedSourceName(null); // カテゴリ切り替え時は個別ソース選択をリセット
   };
+
+  const handleSourceSelect = (source: FeedSource | 'All') => {
+    if (source === 'All') {
+      setActiveCategory('All');
+      setSelectedSourceName(null);
+    } else {
+      setActiveCategory(source.category);
+      setSelectedSourceName(source.name);
+    }
+  };
+
+  const headerTitle = useMemo(() => {
+    if (activeCategory === 'Bookmarks') return 'ブックマーク一覧';
+    if (selectedSourceName) return selectedSourceName;
+    const labels: Record<string, string> = {
+      'All': 'タイムライン',
+      'Reliable': '信頼済みソース',
+      'Discovery': '発見ソース',
+      'Custom': 'カスタムソース'
+    };
+    return labels[activeCategory] || 'タイムライン';
+  }, [activeCategory, selectedSourceName]);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground w-full">
       <DashboardSidebar 
         activeCategory={activeCategory} 
-        setActiveCategory={setActiveCategory} 
+        selectedSourceName={selectedSourceName}
+        onSelectSource={handleSourceSelect}
         sources={allSources}
         onAddSource={() => setIsAddSourceOpen(true)}
       />
@@ -104,7 +146,7 @@ export default function Home() {
             <SidebarTrigger className="hover:bg-muted/50 transition-colors" />
             <div className="h-6 w-px bg-border/40 hidden sm:block" />
             <h2 className="font-headline text-lg font-bold text-foreground hidden sm:block">
-              {categoryLabels[activeCategory]}
+              {headerTitle}
             </h2>
           </div>
 
@@ -130,8 +172,8 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-6 space-y-8 max-w-7xl mx-auto w-full">
-          {/* ヒーローセクション (タイムラインかつ検索なしの時のみ表示) */}
-          {activeCategory === 'All' && !searchQuery && (
+          {/* ヒーローセクション */}
+          {activeCategory === 'All' && !selectedSourceName && !searchQuery && (
             <section className="relative overflow-hidden rounded-3xl bg-primary shadow-2xl shadow-primary/20">
               <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/80 to-accent opacity-90" />
               <div className="relative z-10 p-8 md:p-12 text-primary-foreground max-w-3xl">
@@ -150,20 +192,15 @@ export default function Home() {
                   <Button className="bg-white text-primary hover:bg-white/90 font-bold px-8 rounded-xl h-12 shadow-lg">
                     最新をチェック
                   </Button>
-                  <Button variant="outline" className="border-white/20 hover:bg-white/10 text-white px-8 rounded-xl h-12">
-                    使い方を見る
-                  </Button>
                 </div>
               </div>
-              {/* 背景の装飾 */}
-              <div className="absolute right-0 top-0 h-full w-1/3 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_70%)] from-white/10 hidden lg:block" />
             </section>
           )}
 
           {/* メインフィード */}
           <section>
             <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <Tabs value={activeCategory} onValueChange={(val) => setActiveCategory(val as any)} className="w-full sm:w-auto">
+              <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full sm:w-auto">
                 <TabsList className="bg-muted/40 p-1 rounded-xl">
                   <TabsTrigger value="All" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-xs">タイムライン</TabsTrigger>
                   <TabsTrigger value="Reliable" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm font-semibold text-xs">信頼済み</TabsTrigger>
@@ -177,7 +214,7 @@ export default function Home() {
               <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground/60 uppercase tracking-widest">
                 <div className="flex items-center gap-1.5">
                   <Filter className="w-3.5 h-3.5" />
-                  <span>{filteredArticles.length} Inserts</span>
+                  <span>{filteredArticles.length} 記事</span>
                 </div>
               </div>
             </div>
@@ -190,11 +227,11 @@ export default function Home() {
               ) : (
                 <div className="col-span-full py-32 text-center">
                   <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-muted/30 text-muted-foreground mb-6">
-                    <Search className="w-10 h-10" />
+                    <Filter className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-bold mb-2 tracking-tight">データが見つかりません</h3>
-                  <p className="text-muted-foreground max-w-sm mx-auto mb-8">条件に合う記事が存在しないか、まだブックマークがありません。</p>
-                  <Button variant="outline" className="rounded-xl px-8" onClick={() => {setSearchQuery(''); setActiveCategory('All');}}>
+                  <p className="text-muted-foreground max-w-sm mx-auto mb-8">条件に合う記事が存在しないか、まだデータが同期されていません。</p>
+                  <Button variant="outline" className="rounded-xl px-8" onClick={() => {setSearchQuery(''); handleCategoryChange('All');}}>
                     全データを表示
                   </Button>
                 </div>

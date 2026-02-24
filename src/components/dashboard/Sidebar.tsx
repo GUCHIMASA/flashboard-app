@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { 
-  Rss, 
   Sparkles, 
   ShieldCheck, 
   LayoutDashboard, 
@@ -11,12 +10,9 @@ import {
   Zap,
   LogIn,
   LogOut,
-  User,
-  ChevronRight,
   Bookmark
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { Category, FeedSource } from '@/app/lib/types';
 import { useAuth, useUser } from '@/firebase';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
@@ -37,14 +33,16 @@ import {
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
-  setActiveCategory: (cat: Category | 'All' | 'Bookmarks') => void;
+  selectedSourceName: string | null;
+  onSelectSource: (source: FeedSource | 'All') => void;
   sources: FeedSource[];
   onAddSource: () => void;
 }
 
 export function DashboardSidebar({ 
   activeCategory, 
-  setActiveCategory, 
+  selectedSourceName,
+  onSelectSource, 
   sources,
   onAddSource
 }: DashboardSidebarProps) {
@@ -87,8 +85,8 @@ export function DashboardSidebar({
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                isActive={activeCategory === 'All'} 
-                onClick={() => setActiveCategory('All')}
+                isActive={activeCategory === 'All' && !selectedSourceName} 
+                onClick={() => onSelectSource('All')}
                 tooltip="タイムライン"
                 className="h-10"
               >
@@ -99,7 +97,7 @@ export function DashboardSidebar({
             <SidebarMenuItem>
               <SidebarMenuButton 
                 isActive={activeCategory === 'Bookmarks'} 
-                onClick={() => setActiveCategory('Bookmarks')}
+                onClick={() => onSelectSource({ id: 'bookmarks', name: 'Bookmarks', url: '', category: 'Bookmarks' as any })}
                 tooltip="ブックマーク"
                 className="h-10"
               >
@@ -123,10 +121,11 @@ export function DashboardSidebar({
                 <SidebarMenuItem key={source.id}>
                   <SidebarMenuButton 
                     className="h-9 group"
-                    isActive={activeCategory === 'Reliable'}
-                    onClick={() => setActiveCategory('Reliable')}
+                    isActive={selectedSourceName === source.name}
+                    onClick={() => onSelectSource(source)}
+                    tooltip={source.name}
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 group-hover:scale-125 transition-transform" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 group-hover:scale-125 transition-transform shrink-0" />
                     <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -140,7 +139,7 @@ export function DashboardSidebar({
             <span>発見ソース (情報サイト)</span>
             <div className="flex items-center gap-1">
               {user && (
-                <button onClick={(e) => { e.stopPropagation(); onAddSource(); }} className="hover:text-primary transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); onAddSource(); }} className="hover:text-primary transition-colors p-1">
                   <Plus className="w-3 h-3" />
                 </button>
               )}
@@ -153,10 +152,11 @@ export function DashboardSidebar({
                 <SidebarMenuItem key={source.id}>
                   <SidebarMenuButton 
                     className="h-9 group"
-                    isActive={activeCategory === 'Discovery' || activeCategory === 'Custom'}
-                    onClick={() => setActiveCategory(source.category as any)}
+                    isActive={selectedSourceName === source.name}
+                    onClick={() => onSelectSource(source)}
+                    tooltip={source.name}
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 group-hover:scale-125 transition-transform" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-2 group-hover:scale-125 transition-transform shrink-0" />
                     <span className="truncate text-sm opacity-80 group-hover:opacity-100">{source.name}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
