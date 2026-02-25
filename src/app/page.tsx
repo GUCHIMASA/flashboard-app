@@ -56,7 +56,7 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // Firestoreから記事を取得
+  // Firestoreから記事を取得 (インデックスエラー回避のためシンプルなクエリ)
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
@@ -236,7 +236,7 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
                           priority
-                          data-ai-hint="futuristic tech landscape"
+                          data-ai-hint="futuristic tech"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">

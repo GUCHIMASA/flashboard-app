@@ -41,7 +41,7 @@ const articleTransformPrompt = ai.definePrompt({
   },
   output: { schema: SummarizeOutputSchema },
   config: {
-    // ニュース記事が誤ブロックされないよう制限を解除
+    // ニュース記事（脆弱性や攻撃などの言葉）が誤ブロックされないよう制限を完全に解除
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -54,7 +54,7 @@ const articleTransformPrompt = ai.definePrompt({
 あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
 
 指示：
-1. [translatedTitle]: 元の英語タイトルを、日本のテックニュース（例: TechCrunch Japan, Gizmodo Japan）のような、目を引く自然な日本語に翻訳・リライトしてください。
+1. [translatedTitle]: 元の英語タイトルを、日本のテックメディア（例: TechCrunch Japan）のような、目を引く自然な日本語に翻訳・リライトしてください。
 2. [summary]: 記事の最も重要なポイントを3つ抽出し、「・」から始まる箇条書きの日本語で、合計50文字程度で簡潔にまとめてください。
 
 入力データ：
@@ -100,7 +100,7 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 各ソース最新3件を処理
+        // 最新3件を処理
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
@@ -118,6 +118,7 @@ const syncRssFlow = ai.defineFlow(
           const needsProcessing = existingSnapshot.empty || 
             !existingSnapshot.docs[0].data().summary || 
             existingSnapshot.docs[0].data().summary.includes('失敗') ||
+            existingSnapshot.docs[0].data().summary.includes('制限') ||
             isEnglish;
 
           if (needsProcessing) {
@@ -138,7 +139,8 @@ const syncRssFlow = ai.defineFlow(
               }
             } catch (e: any) {
               console.error(`[AI Error] ${item.title}:`, e.message);
-              summary = '・AI解析が制限されました\n・リンク先を確認してください\n・再同期を試してください';
+              // 具体的なエラー文ではなく、ユーザー向けの定型文をセット
+              summary = '・AI解析が一時的に制限されました\n・リンク先で詳細を確認してください\n・再度同期を試してください';
             }
 
             const articleData = {
