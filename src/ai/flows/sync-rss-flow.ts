@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、Geminiで翻訳・要約を生成してFirestoreに保存するフロー。
@@ -114,18 +113,12 @@ const syncRssFlow = ai.defineFlow(
           const existingData = existingSnapshot.docs[0]?.data();
           const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
           
-          // needsProcessingの条件からキーワード判定を削除
           const needsProcessing = existingSnapshot.empty || 
             !existingData?.summary || 
             isEnglish;
 
           if (needsProcessing) {
             console.log(`[AI処理開始] 記事: ${item.title}`);
-            
-            let summary = '';
-            let translatedTitle = item.title;
-
-            // APIキーの存在確認 (true/falseのみ)
             console.log(`[AI Key Check] Before prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
             try {
@@ -137,39 +130,38 @@ const syncRssFlow = ai.defineFlow(
               console.log(`[AI Key Check] After prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
               if (output) {
-                summary = output.summary;
-                translatedTitle = output.translatedTitle;
+                // AI処理が成功した場合のみFirestoreに保存する
+                const articleData = {
+                  title: output.translatedTitle,
+                  originalTitle: item.title,
+                  content: contentSnippet.substring(0, 2000),
+                  summary: output.summary,
+                  link: link, 
+                  sourceName: source.name,
+                  publishedAt: item.isoDate || new Date().toISOString(),
+                  imageUrl: `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
+                  category: source.category,
+                  updatedAt: serverTimestamp()
+                };
+
+                if (existingSnapshot.empty) {
+                  await addDoc(articlesRef, { ...articleData, createdAt: serverTimestamp() });
+                  addedCount++;
+                } else {
+                  const articleDoc = doc(firestore, 'articles', existingSnapshot.docs[0].id);
+                  await updateDoc(articleDoc, articleData);
+                  updatedCount++;
+                }
+                console.log(`[AI処理成功] 保存完了: ${output.translatedTitle}`);
+              } else {
+                console.error(`[AI Error] ${item.title}: AIの出力が空のため保存をスキップします。`);
               }
             } catch (e: any) {
-              console.error(`[AI Error] ${item.title}:`, e.message);
-              console.log(`[AI Key Check] After prompt (error): ${!!process.env.GOOGLE_GENAI_API_KEY}`);
-              // 失敗時はsummaryを空文字、titleを元のままにする
-              summary = '';
-              translatedTitle = item.title;
-            }
-
-            const articleData = {
-              title: translatedTitle,
-              originalTitle: item.title,
-              content: contentSnippet.substring(0, 2000),
-              summary: summary,
-              link: link, 
-              sourceName: source.name,
-              publishedAt: item.isoDate || new Date().toISOString(),
-              imageUrl: `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
-              category: source.category,
-              updatedAt: serverTimestamp()
-            };
-
-            if (existingSnapshot.empty) {
-              await addDoc(articlesRef, { ...articleData, createdAt: serverTimestamp() });
-              addedCount++;
-            } else {
-              const articleDoc = doc(firestore, 'articles', existingSnapshot.docs[0].id);
-              await updateDoc(articleDoc, articleData);
-              updatedCount++;
+              console.error(`[AI Error] ${item.title}: AI処理に失敗しました。この記事の保存をスキップします。`, e.message);
+              // 保存をスキップすることで、次回の同期時に再度AI処理が試行される
             }
           }
+          
           // 記事を1件処理するたびに2秒待機する (レート制限対策)
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
