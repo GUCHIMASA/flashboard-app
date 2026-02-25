@@ -32,7 +32,7 @@ export default function Home() {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   
-  const [activeCategory, setActiveCategory] = useState<Category | 'All' | 'Bookmarks'>('All');
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -63,7 +63,7 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 記事の取得 (インデックスエラー回避のため orderBy を使わずクライアントでソート)
+  // 記事の取得
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(50));
@@ -79,29 +79,35 @@ export default function Home() {
 
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
     id: b.id,
-    title: b.title,
+    title: b.title || 'No Title',
     content: b.content || '',
     summary: b.summary,
-    sourceName: b.sourceName,
+    sourceName: b.sourceName || 'Unknown',
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Reliable', 
+    category: 'Bookmarks', 
     link: b.link || b.url || '#',
-    imageUrl: b.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'
+    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
-  // データ整形 (url/link フィールドの揺らぎを吸収)
+  // データ整形 (url/link フィールドの揺らぎを確実に吸収)
   const normalizedArticles = useMemo(() => {
+    console.log("Processing Firestore Articles:", firestoreArticles.length);
     return (firestoreArticles as any[]).map(a => ({
       ...a,
+      id: a.id,
+      title: a.title || 'No Title',
       link: a.link || a.url || '#',
-      publishedAt: a.publishedAt || a.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
+      category: a.category || 'Reliable',
+      sourceName: a.sourceName || 'Unknown',
+      publishedAt: a.publishedAt || a.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
     })) as Article[];
   }, [firestoreArticles]);
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  // 最新順にソート (クライアントサイドソート)
+  // 最新順にソート
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => {
       const dateA = new Date(a.publishedAt).getTime();
@@ -112,16 +118,24 @@ export default function Home() {
 
   const filteredArticles = useMemo(() => {
     return sortedArticles.filter(a => {
-      if (activeCategory !== 'All' && activeCategory !== 'Bookmarks' && a.category !== activeCategory) {
-        return false;
+      // カテゴリーフィルター (大文字小文字の違いなどを許容)
+      if (activeCategory !== 'All' && activeCategory !== 'Bookmarks') {
+        if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) {
+          return false;
+        }
       }
+      
+      // ソース名フィルター
       if (selectedSourceName && a.sourceName !== selectedSourceName) {
         return false;
       }
+      
+      // 検索クエリ
       const searchTarget = `${a.title} ${a.content} ${a.sourceName}`.toLowerCase();
       if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) {
         return false;
       }
+      
       return true;
     });
   }, [sortedArticles, activeCategory, selectedSourceName, searchQuery]);
@@ -187,7 +201,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen w-full">
       <DashboardSidebar 
-        activeCategory={activeCategory} 
+        activeCategory={activeCategory as any} 
         selectedSourceName={selectedSourceName}
         onSelectSource={handleSourceSelect}
         onDeleteSource={(id) => deleteDoc(doc(db!, 'users', user!.uid, 'sources', id))}
@@ -252,10 +266,11 @@ export default function Home() {
                     <CarouselItem key={article.id}>
                       <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl group">
                         <Image 
-                          src={article.imageUrl || 'https://picsum.photos/seed/placeholder/1200/800'} 
+                          src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                           alt={article.title}
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
+                          data-ai-hint="futuristic landscape"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
@@ -276,7 +291,7 @@ export default function Home() {
 
           <section>
             <div className="mb-8 flex items-center justify-between">
-              <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as any)} className="bg-secondary/30 p-1 rounded-full border border-border">
+              <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border">
                 <TabsList className="bg-transparent h-10">
                   <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">All</TabsTrigger>
                   <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary">Reliable</TabsTrigger>
@@ -286,11 +301,11 @@ export default function Home() {
               </Tabs>
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                 <Filter className="w-3 h-3 text-primary" />
-                {filteredArticles.length} INSIGHTS
+                {filteredArticles.length} INSIGHTS / {normalizedArticles.length} TOTAL
               </div>
             </div>
 
-            {articlesLoading && sortedArticles.length === 0 ? (
+            {articlesLoading && normalizedArticles.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="aspect-[4/5] rounded-[2rem] bg-secondary/50 animate-pulse" />
@@ -311,11 +326,11 @@ export default function Home() {
                 </div>
                 <h3 className="text-2xl font-black mb-2 uppercase">No Data Found</h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
-                  Firestoreには {firestoreArticles.length} 件の記事がありますが、現在のフィルターには一致しません。<br />
-                  「INITIALIZE SYNC」を押して最新情報を取得してください。
+                  Firestoreには {normalizedArticles.length} 件の記事がありますが、現在のフィルターには一致しません。<br />
+                  左メニューのソース選択を解除するか、カテゴリーを確認してください。
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "SYNCHRONIZING..." : "INITIALIZE SYNC"}
+                  {isRefreshing ? "SYNCHRONIZING..." : "REFRESH DATA"}
                 </Button>
               </div>
             )}

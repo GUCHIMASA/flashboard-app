@@ -15,9 +15,9 @@ export interface Article {
   content: string;
   summary?: string;
   sourceName: string;
-  sourceUrl: string;
+  sourceUrl?: string; // オプショナルに変更
   publishedAt: string;
-  category: Category;
+  category: string; // カテゴリー判定を柔軟にするためstringに変更
   link: string;
   imageUrl?: string;
 }
