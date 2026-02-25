@@ -7,19 +7,13 @@ import {
   ShieldCheck, 
   LayoutDashboard, 
   Plus,
-  Settings,
   Zap,
-  LogIn,
-  LogOut,
   Bookmark,
   Globe,
   Trash2
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Category, FeedSource } from '@/app/lib/types';
-import { useAuth, useUser } from '@/firebase';
-import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useUser } from '@/firebase';
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +25,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  SidebarMenuAction,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -54,47 +47,8 @@ export function DashboardSidebar({
   sources,
   onAddSource
 }: DashboardSidebarProps) {
-  const auth = useAuth();
   const { user } = useUser();
   const { toast } = useToast();
-
-  const handleLogin = async () => {
-    if (!auth) {
-      toast({
-        variant: "destructive",
-        title: "認証エラー",
-        description: "Firebase Authが初期化されていません。",
-      });
-      return;
-    }
-
-    try {
-      const provider = new GoogleAuthProvider();
-      // ポップアップがブロックされる環境への配慮
-      await signInWithPopup(auth, provider);
-      toast({
-        title: "ログイン成功",
-        description: "アカウントが正常に連携されました。",
-      });
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast({
-        variant: "destructive",
-        title: "連携失敗",
-        description: error.message || "Googleログイン中にエラーが発生しました。",
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    if (auth) {
-      signOut(auth);
-      toast({
-        title: "ログアウト",
-        description: "セッションを終了しました。",
-      });
-    }
-  };
 
   const getFaviconUrl = (url: string) => {
     try {
@@ -142,7 +96,13 @@ export function DashboardSidebar({
             <SidebarMenuItem>
               <SidebarMenuButton 
                 isActive={activeCategory === 'Bookmarks'} 
-                onClick={() => onSelectSource({ id: 'bookmarks', name: 'Bookmarks', url: '', category: 'Bookmarks' as any })}
+                onClick={() => {
+                  if (!user) {
+                    toast({ title: "ログインが必要です", description: "ブックマークを見るにはログインしてください。" });
+                    return;
+                  }
+                  onSelectSource({ id: 'bookmarks', name: 'Bookmarks', url: '', category: 'Bookmarks' as any });
+                }}
                 tooltip="ブックマーク"
                 className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
               >
@@ -221,81 +181,63 @@ export function DashboardSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
-            <span>カスタム設定</span>
-            <Plus 
-              onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
-              className="w-4 h-4 text-primary cursor-pointer hover:scale-125 transition-transform" 
-            />
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="px-3">
-              {customSources.map((source) => {
-                const favicon = getFaviconUrl(source.url);
-                return (
-                  <SidebarMenuItem key={source.id}>
-                    <div className="flex items-center group/item">
-                      <SidebarMenuButton 
-                        className="h-10 rounded-xl flex-1 hover:bg-white/5"
-                        isActive={selectedSourceName === source.name}
-                        onClick={() => onSelectSource(source)}
-                        tooltip={source.name}
-                      >
-                        <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 mr-2 shrink-0 flex items-center justify-center border border-white/5">
-                          {favicon ? (
-                            <img src={favicon} alt="" className="w-4 h-4 object-contain" />
-                          ) : (
-                            <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                          )}
-                        </div>
-                        <span className="truncate text-xs font-medium">{source.name}</span>
-                      </SidebarMenuButton>
-                      
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onDeleteSource) onDeleteSource(source.id);
-                        }}
-                        className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {user && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
+              <span>カスタム設定</span>
+              <Plus 
+                onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
+                className="w-4 h-4 text-primary cursor-pointer hover:scale-125 transition-transform" 
+              />
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="px-3">
+                {customSources.map((source) => {
+                  const favicon = getFaviconUrl(source.url);
+                  return (
+                    <SidebarMenuItem key={source.id}>
+                      <div className="flex items-center group/item">
+                        <SidebarMenuButton 
+                          className="h-10 rounded-xl flex-1 hover:bg-white/5"
+                          isActive={selectedSourceName === source.name}
+                          onClick={() => onSelectSource(source)}
+                          tooltip={source.name}
+                        >
+                          <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 mr-2 shrink-0 flex items-center justify-center border border-white/5">
+                            {favicon ? (
+                              <img src={favicon} alt="" className="w-4 h-4 object-contain" />
+                            ) : (
+                              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                            )}
+                          </div>
+                          <span className="truncate text-xs font-medium">{source.name}</span>
+                        </SidebarMenuButton>
+                        
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onDeleteSource) onDeleteSource(source.id);
+                          }}
+                          className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-6 border-t border-white/5">
-        {user ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 px-2">
-              <Avatar className="h-10 w-10 border-2 border-primary/20 p-0.5">
-                <AvatarImage src={user.photoURL || ''} className="rounded-full" />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs font-black">
-                  {user.displayName?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                <p className="text-sm font-black truncate">{user.displayName}</p>
-                <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">認証済み</p>
-              </div>
-            </div>
-            <div className="flex gap-2 group-data-[collapsible=icon]:hidden">
-              <Button variant="ghost" size="sm" className="flex-1 text-[10px] font-black h-9 hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout}>
-                <LogOut className="w-3.5 h-3.5 mr-2" /> 接続解除
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button onClick={handleLogin} className="w-full gap-2 text-xs font-black rounded-full h-11 neo-blur">
-            <LogIn className="w-4 h-4" /> アカウントを連携
-          </Button>
-        )}
+        <div className="flex items-center justify-center group-data-[collapsible=icon]:hidden">
+          <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
+            AI SYNAPSE v1.0
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

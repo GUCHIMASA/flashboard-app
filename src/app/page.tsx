@@ -7,6 +7,7 @@ import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
+import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -225,6 +226,7 @@ export default function Home() {
                 <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
               </Button>
             )}
+            <UserMenu />
           </div>
         </header>
 
@@ -338,7 +340,13 @@ export default function Home() {
       <AddSourceDialog 
         open={isAddSourceOpen} 
         onOpenChange={setIsAddSourceOpen} 
-        onAdd={(s) => addDoc(collection(db!, 'users', user!.uid, 'sources'), { ...s, createdAt: serverTimestamp() })}
+        onAdd={(s) => {
+          if (!user) {
+            toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" });
+            return;
+          }
+          addDoc(collection(db!, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
+        }}
       />
     </div>
   );
