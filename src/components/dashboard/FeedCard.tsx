@@ -70,12 +70,12 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   return (
-    <Card className="group relative flex flex-col h-full border-white/5 bg-card/40 backdrop-blur-sm hover:bg-card/60 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
+    <Card className="group relative flex flex-col h-full border-white/5 bg-background dark:bg-card hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
       
-      <CardHeader className="p-3 md:p-5 pb-2">
+      <CardHeader className="p-4 md:p-5 pb-2">
         <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary-foreground text-[8px] md:text-[10px] uppercase font-bold border-none px-2 py-0.5 rounded-md">
+          <Badge variant="secondary" className="bg-primary/10 text-primary text-[8px] md:text-[10px] uppercase font-bold border-none px-2 py-0.5 rounded-md">
             {categoryLabels[article.category] || article.category}
           </Badge>
           <span className="text-[8px] md:text-[10px] font-medium text-muted-foreground/80">
@@ -84,7 +84,7 @@ export function FeedCard({ article }: FeedCardProps) {
         </div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5">
+            <div className="w-4 h-4 rounded-sm overflow-hidden bg-white/10 shrink-0 flex items-center justify-center border border-white/5">
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
@@ -95,7 +95,7 @@ export function FeedCard({ article }: FeedCardProps) {
               {article.sourceName}
             </span>
           </div>
-          <h3 className="font-headline text-[12px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
+          <h3 className="font-headline text-[13px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
             {article.title}
           </h3>
         </div>
@@ -112,8 +112,8 @@ export function FeedCard({ article }: FeedCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="px-3 md:px-5 py-2 flex-grow">
-        <div className="relative bg-white/5 border border-white/5 rounded-2xl p-3 md:p-5 overflow-hidden group/summary">
+      <CardContent className="px-4 md:px-5 py-2 flex-grow">
+        <div className="relative bg-secondary/20 dark:bg-white/5 border border-white/5 rounded-2xl p-4 md:p-5 overflow-hidden group/summary min-h-[100px] md:min-h-0">
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
           
           <div className="flex items-center gap-2 mb-2 text-primary">
@@ -122,7 +122,7 @@ export function FeedCard({ article }: FeedCardProps) {
           </div>
 
           {article.summary ? (
-            <div className="text-[11px] md:text-[14px] text-foreground/90 leading-relaxed font-medium whitespace-pre-line relative z-10">
+            <div className="text-[12px] md:text-[14px] text-foreground/90 leading-relaxed font-medium whitespace-pre-line relative z-10">
               {article.summary}
             </div>
           ) : (
@@ -131,7 +131,7 @@ export function FeedCard({ article }: FeedCardProps) {
         </div>
       </CardContent>
 
-      <CardFooter className="px-3 md:px-5 py-3 md:py-4 flex items-center justify-between border-t border-white/5">
+      <CardFooter className="px-4 md:px-5 py-3 md:py-4 flex items-center justify-between border-t border-white/5">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/5">
             <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
