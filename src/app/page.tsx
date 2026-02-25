@@ -39,7 +39,6 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // カスタムソースの取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -56,14 +55,12 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 記事の取得
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
-  // ブックマークの取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -186,7 +183,7 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <SidebarTrigger className="hover:bg-primary/10" />
             <div className="flex flex-col">
-              <h2 className="font-headline text-lg md:text-2xl font-black uppercase tracking-tight">
+              <h2 className="font-headline text-lg md:text-2xl font-black uppercase tracking-tight text-foreground">
                 {selectedSourceName || categoryNames[activeCategory] || 'ストリーム'}
               </h2>
               <div className="flex items-center gap-2">

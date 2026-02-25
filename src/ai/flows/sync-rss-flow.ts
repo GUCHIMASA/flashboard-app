@@ -26,35 +26,9 @@ const SyncRssInputSchema = z.object({
   }))
 });
 
-const summarizePrompt = ai.definePrompt({
-  name: 'syncSummarizePrompt',
-  input: { 
-    schema: z.object({ 
-      title: z.string(), 
-      content: z.string() 
-    }) 
-  },
-  output: { 
-    schema: z.object({ 
-      summary: z.string().describe('3つの短い箇条書き（・）形式の日本語要約'), 
-      translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳された記事タイトル') 
-    }) 
-  },
-  prompt: `あなたはニュース記事を日本語に翻訳し、簡潔に要約するプロの編集者です。
-以下の記事情報を処理してください：
-
-1. translatedTitle: 
-   - 元の英語タイトルを、日本の読者が一瞬で理解できる自然で魅力的な日本語に翻訳してください。
-   - 専門用語は適切に日本語にするか、カタカナ表記にしてください。
-
-2. summary: 
-   - 記事の内容を以下のルールで要約してください。
-   - 必ず「3つの短い箇条書き（・）」のみで構成すること。
-   - 1文は15文字以内。
-   - 体言止め（「〜を開発」「〜を発表」など）を推奨。
-
-記事のタイトル: {{{title}}}
-記事の本文/概要: {{{content}}}`,
+const SummarizeOutputSchema = z.object({
+  summary: z.string().describe('3つの短い箇条書き（・）形式の日本語要約'), 
+  translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳された記事タイトル') 
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -94,35 +68,38 @@ const syncRssFlow = ai.defineFlow(
         const items = feed.items.slice(0, 2);
 
         for (const item of items) {
-          if (!item.link || !item.title) continue;
+          const link = item.link || item.guid || '';
+          if (!link || !item.title) continue;
 
           const articlesRef = collection(firestore, 'articles');
-          const q = query(articlesRef, where('link', '==', item.link));
+          const q = query(articlesRef, where('link', '==', link));
           const existingSnapshot = await getDocs(q);
 
           if (existingSnapshot.empty) {
             console.log(`[AI Insight] Processing article: ${item.title}`);
             const content = item.contentSnippet || item.content || item.title || '';
             
-            let summary = '';
+            let summary = '・要約の生成に失敗しました';
             let translatedTitle = item.title;
 
             try {
-              const { output } = await summarizePrompt({
-                title: item.title,
-                content: content.substring(0, 1000)
+              const { output } = await ai.generate({
+                model: 'googleai/gemini-1.5-flash',
+                prompt: `以下の記事情報を処理してください。
+1. translatedTitle: 日本の読者が興味を持つような自然な日本語に翻訳されたタイトル。
+2. summary: 記事の内容を「3つの短い箇条書き（・）」で、各文15文字以内の日本語で。
+
+タイトル: ${item.title}
+本文/概要: ${content.substring(0, 1000)}`,
+                output: { schema: SummarizeOutputSchema }
               });
               
               if (output) {
                 summary = output.summary;
                 translatedTitle = output.translatedTitle;
-              } else {
-                throw new Error('AI output was null');
               }
             } catch (e: any) {
               console.error(`[AI Error] Failed for "${item.title}":`, e.message);
-              summary = '・解析エラーが発生しました\n・内容を確認できません\n・手動確認を推奨します';
-              translatedTitle = `(翻訳失敗) ${item.title}`;
             }
 
             await addDoc(articlesRef, {
@@ -130,7 +107,7 @@ const syncRssFlow = ai.defineFlow(
               originalTitle: item.title,
               content: content.substring(0, 1500),
               summary: summary,
-              link: item.link, 
+              link: link, 
               sourceName: source.name,
               publishedAt: item.isoDate || new Date().toISOString(),
               imageUrl: `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
