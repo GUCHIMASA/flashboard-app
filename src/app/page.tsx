@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database, Lock } from 'lucide-react';
+import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -214,7 +214,7 @@ export default function Home() {
               />
             </div>
             <ThemeToggle />
-            {isAdmin ? (
+            {isAdmin && (
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -224,10 +224,6 @@ export default function Home() {
               >
                 <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
               </Button>
-            ) : (
-              <div className="w-10 h-10 flex items-center justify-center opacity-20" title="管理者のみ同期可能">
-                <Lock className="w-4 h-4" />
-              </div>
             )}
           </div>
         </header>
