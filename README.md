@@ -10,7 +10,7 @@ AIを活用した情報の集約と要約を実現する次世代ダッシュボ
 
 ### 2.1 AI 要約（Quick Insight）
 - **動作**: 英語の記事タイトルを自然な日本語に翻訳し、本文から最も重要な3つのポイントを抽出して箇条書き（・）で要約します。
-- **エンジン**: Google Genkit + Gemini 1.5 Flash。
+- **エンジン**: Google Genkit + Gemini 2.5 Flash Lite。
 - **仕様**: `summarizeAggregatedArticleContent` フローにより、翻訳と要約を一括処理。AIが失敗した場合は、データベースの整合性を守るため保存をスキップし、次回の同期で再試行します。
 
 ### 2.2 リアルタイム同期（Sync RSS）
@@ -32,7 +32,7 @@ AIを活用した情報の集約と要約を実現する次世代ダッシュボ
 ## 3. 開発スタック
 - **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS
 - **UI Components**: ShadCN UI, Lucide Icons
-- **AI Engine**: Google Genkit (@genkit-ai/google-genai)
+- **AI Engine**: Google Genkit (@genkit-ai/google-genai) / Gemini 2.5 Flash Lite
 - **Backend**: Firebase (Firestore, Authentication)
 
 ## 4. セットアップと環境変数
