@@ -31,9 +31,11 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuAction,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
@@ -54,16 +56,43 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const auth = useAuth();
   const { user } = useUser();
+  const { toast } = useToast();
 
-  const handleLogin = () => {
-    if (auth) {
-      signInWithPopup(auth, new GoogleAuthProvider());
+  const handleLogin = async () => {
+    if (!auth) {
+      toast({
+        variant: "destructive",
+        title: "認証エラー",
+        description: "Firebase Authが初期化されていません。",
+      });
+      return;
+    }
+
+    try {
+      const provider = new GoogleAuthProvider();
+      // ポップアップがブロックされる環境への配慮
+      await signInWithPopup(auth, provider);
+      toast({
+        title: "ログイン成功",
+        description: "アカウントが正常に連携されました。",
+      });
+    } catch (error: any) {
+      console.error('Login error:', error);
+      toast({
+        variant: "destructive",
+        title: "連携失敗",
+        description: error.message || "Googleログイン中にエラーが発生しました。",
+      });
     }
   };
 
   const handleLogout = () => {
     if (auth) {
       signOut(auth);
+      toast({
+        title: "ログアウト",
+        description: "セッションを終了しました。",
+      });
     }
   };
 
