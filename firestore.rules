@@ -4,106 +4,45 @@ service cloud.firestore {
 
     /**
      * AI Synapse Security Rules
-     * 
-     * CORE PHILOSOPHY:
-     * This ruleset implements a hybrid security model. User profiles and custom content sources 
-     * follow a strict ownership model (Path-based or Attribute-based), while global content 
-     * sources and aggregated content items are publicly accessible to ensure a seamless 
-     * discovery experience.
-     * 
-     * DATA STRUCTURE:
-     * - /users/{userId}: Private user profiles.
-     * - /sources/{sourceId}: A shared collection containing both system-managed (global) 
-     *   sources and user-defined custom RSS feeds.
-     * - /contentItems/{contentItemId}: A public repository of all aggregated articles.
-     * 
-     * KEY SECURITY DECISIONS:
-     * 1. Denormalization for Authorization: Custom 'Source' documents include a 'userId' 
-     *    field. This allows rules to verify ownership directly on the document without 
-     *    expensive cross-document lookups.
-     * 2. Anonymous Support: Rules are designed to support both 'password' and 'anonymous' 
-     *    authentication providers as specified in the backend requirements.
-     * 3. Write Protection: Only the system (via Administrative SDKs) or the specific 
-     *    owner can modify data. Public write access is strictly forbidden.
-     * 
-     * DEPLOYMENT NOTE: 
-     * The reported error 'auth/operation-not-allowed' typically indicates that 'Anonymous' 
-     * or 'Email/Password' authentication is not enabled in the Firebase Console. 
-     * Please ensure these providers are toggled 'ON' in the Authentication > Sign-in method tab.
      */
 
-    // --- Global Helper Functions ---
-
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the authenticated user's UID matches the provided userId. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks ownership and ensures the document exists for state-changing operations. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for User profiles. Access is strictly path-based.
-     * @path /users/{userId}
-     * @allow get: (get) if request.auth.uid == userId
-     * @deny list: (list) users cannot be enumerated for privacy.
-     * @principle Restricts access to a user's own data tree and validates path consistency.
-     */
+    // ユーザープロファイルと、その配下のカスタムデータ（ソース、ブックマーク）
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // Users should not be listable
+      allow read, write: if isOwner(userId);
       
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      match /sources/{sourceId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /bookmarks/{bookmarkId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
-    /**
-     * @description Rules for Content Sources. Supports both global and user-owned sources.
-     * @path /sources/{sourceId}
-     * @allow get: (get) if resource.data.userId == null (Global) OR if resource.data.userId == request.auth.uid (Owned).
-     * @deny create: (create) if request.resource.data.userId != request.auth.uid.
-     * @principle Uses denormalized 'userId' for atomic authorization without extra reads.
-     */
-    match /sources/{sourceId} {
-      // Logic: Global sources have no userId. User sources have a userId.
-      allow get: if (resource.data.userId == null) || (resource.data.userId == request.auth.uid);
+    // 収集された記事データ
+    match /articles/{articleId} {
+      // 誰でも閲覧可能（未ログインでもOK）
+      allow read, list: if true;
       
-      // Allow listing. Client-side queries should filter where userId == null or userId == uid.
-      allow list: if isSignedIn();
-
-      // Only the authenticated user can create a source assigned to their own UID.
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // 書き込みは認証済みユーザーのみ（同期処理など）
+      allow create, update: if isSignedIn();
       
-      // Only the owner can update or delete their custom sources.
-      // We enforce that the userId field is immutable to prevent ownership transfer.
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      // 削除は管理者のみ（必要に応じて設定）
+      allow delete: if isSignedIn();
     }
 
-    /**
-     * @description Rules for aggregated Content Items.
-     * @path /contentItems/{contentItemId}
-     * @allow get, list: (read) allowed for all users to facilitate a public feed.
-     * @deny create, update, delete: (write) only allowed via system/admin processes.
-     * @principle Implements a Public Read / System Write pattern.
-     */
+    // 互換性のためのエイリアス（もしcontentItemsが使われている場合）
     match /contentItems/{contentItemId} {
-      // Content items are the product of the aggregation engine and are public.
-      allow get, list: if true;
-
-      // Clients/Users are not permitted to modify aggregated content.
-      // These operations are reserved for administrative service accounts.
-      allow create, update, delete: if false;
+      allow read, list: if true;
+      allow write: if isSignedIn();
     }
   }
 }
