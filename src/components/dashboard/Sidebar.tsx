@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -95,7 +96,7 @@ export function DashboardSidebar({
       <SidebarContent className="py-8">
         <SidebarGroup>
           <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4">
-            Terminal
+            メインメニュー
           </SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -106,7 +107,7 @@ export function DashboardSidebar({
                 className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
               >
                 <LayoutDashboard className="w-5 h-5" />
-                <span className="font-bold">Stream</span>
+                <span className="font-bold">ストリーム</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -117,7 +118,7 @@ export function DashboardSidebar({
                 className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
               >
                 <Bookmark className="w-5 h-5" />
-                <span className="font-bold">Vault</span>
+                <span className="font-bold">保管庫</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -127,7 +128,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
-            <span>Primary</span>
+            <span>信頼ソース</span>
             <ShieldCheck className="w-3 h-3 text-primary" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -160,7 +161,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
-            <span>Discovery</span>
+            <span>ディスカバリー</span>
             <Sparkles className="w-3 h-3 text-accent" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -193,7 +194,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
-            <span>Custom</span>
+            <span>カスタム設定</span>
             <Plus 
               onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
               className="w-4 h-4 text-primary cursor-pointer hover:scale-125 transition-transform" 
@@ -252,18 +253,18 @@ export function DashboardSidebar({
               </Avatar>
               <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
                 <p className="text-sm font-black truncate">{user.displayName}</p>
-                <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">Authorized</p>
+                <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter">認証済み</p>
               </div>
             </div>
             <div className="flex gap-2 group-data-[collapsible=icon]:hidden">
               <Button variant="ghost" size="sm" className="flex-1 text-[10px] font-black h-9 hover:bg-destructive/10 hover:text-destructive" onClick={handleLogout}>
-                <LogOut className="w-3.5 h-3.5 mr-2" /> DISCONNECT
+                <LogOut className="w-3.5 h-3.5 mr-2" /> 接続解除
               </Button>
             </div>
           </div>
         ) : (
           <Button onClick={handleLogin} className="w-full gap-2 text-xs font-black rounded-full h-11 neo-blur">
-            <LogIn className="w-4 h-4" /> CONNECT IDENTITY
+            <LogIn className="w-4 h-4" /> アカウントを連携
           </Button>
         )}
       </SidebarFooter>

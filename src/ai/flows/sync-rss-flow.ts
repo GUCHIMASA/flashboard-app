@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview RSSフィードを同期し、Geminiで要約を生成してFirestoreに保存するフロー。
+ * @fileOverview RSSフィードを同期し、Geminiで翻訳・要約を生成してFirestoreに保存するフロー。
  */
 
 import { ai } from '@/ai/genkit';
@@ -29,12 +29,15 @@ const SyncRssInputSchema = z.object({
 const summarizePrompt = ai.definePrompt({
   name: 'syncSummarizePrompt',
   input: { schema: z.object({ title: z.string(), content: z.string() }) },
-  output: { schema: z.object({ summary: z.string() }) },
-  prompt: `あなたはニュース記事を極めて簡潔に要約するAIです。
-以下の記事を日本語で要約してください：
-- 必ず3つの短い箇条書き（・）のみ。
-- 1文は15文字以内。
-- 体言止め。
+  output: { schema: z.object({ summary: z.string(), translatedTitle: z.string() }) },
+  prompt: `あなたはニュース記事を日本語に翻訳し、簡潔に要約するAIです。
+以下の記事情報を処理してください：
+
+1. translatedTitle: 元の英語タイトルを、日本の読者が興味を引くような自然な日本語に翻訳してください。
+2. summary: 記事の内容を以下のルールで要約してください。
+   - 必ず3つの短い箇条書き（・）のみ。
+   - 1文は15文字以内。
+   - 体言止め。
 
 タイトル: {{title}}
 本文: {{content}}`,
@@ -73,13 +76,12 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // タイムアウト回避のため最新3件を取得
+        // 最新3件を取得
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
           if (!item.link || !item.title) continue;
 
-          // 重複チェック (linkフィールドで統一)
           const articlesRef = collection(firestore, 'articles');
           const q = query(articlesRef, where('link', '==', item.link));
           const existingSnapshot = await getDocs(q);
@@ -89,18 +91,22 @@ const syncRssFlow = ai.defineFlow(
             const content = item.contentSnippet || item.content || item.title || '';
             
             let summary = '';
+            let translatedTitle = item.title;
+
             try {
               const { output } = await summarizePrompt({
                 title: item.title,
                 content: content.substring(0, 800)
               });
               summary = output?.summary || '';
+              translatedTitle = output?.translatedTitle || item.title;
             } catch (e: any) {
               summary = '要約の生成に失敗しました。';
             }
 
             await addDoc(articlesRef, {
-              title: item.title,
+              title: translatedTitle,
+              originalTitle: item.title,
               content: content.substring(0, 1000),
               summary: summary,
               link: item.link, 

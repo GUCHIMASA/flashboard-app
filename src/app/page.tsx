@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database, WifiOff, CheckCircle2 } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database, WifiOff, CheckCircle2, Calendar } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -17,7 +18,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
@@ -38,14 +40,6 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // デバッグ用: Firebaseの設定がクライアントで読み込まれているか確認
-  useEffect(() => {
-    console.log("🛠️ Client Firebase Config:", {
-      projectId: firebaseConfig.projectId,
-      hasApiKey: !!firebaseConfig.apiKey
-    });
-  }, []);
-
   // カスタムソースの取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -63,7 +57,7 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 記事の取得 (インデックスエラー回避のため最も単純なクエリにする)
+  // 記事の取得
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
@@ -79,10 +73,10 @@ export default function Home() {
 
   const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
     id: b.id,
-    title: b.title || 'No Title',
+    title: b.title || '無題',
     content: b.content || '',
     summary: b.summary,
-    sourceName: b.sourceName || 'Unknown',
+    sourceName: b.sourceName || '不明',
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     category: 'Bookmarks', 
@@ -90,28 +84,21 @@ export default function Home() {
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
-  // データ整形 (url/link フィールドの不一致を完全に吸収)
   const normalizedArticles = useMemo(() => {
-    if (firestoreArticles.length > 0) {
-      console.log("✅ Firestore articles found:", firestoreArticles.length);
-    }
     return (firestoreArticles as any[]).map(a => {
-      // 日付の正規化
       let dateStr = a.publishedAt;
       if (!dateStr && a.createdAt?.toDate) {
         dateStr = a.createdAt.toDate().toISOString();
       }
-      if (!dateStr) {
-        dateStr = new Date().toISOString();
-      }
+      if (!dateStr) dateStr = new Date().toISOString();
 
       return {
         ...a,
         id: a.id,
-        title: a.title || 'No Title',
-        link: a.link || a.url || '#', // urlとlinkの両方に対応
+        title: a.title || '無題',
+        link: a.link || a.url || '#',
         category: a.category || 'Reliable',
-        sourceName: a.sourceName || 'Unknown',
+        sourceName: a.sourceName || '不明',
         publishedAt: dateStr,
         imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
       } as Article;
@@ -120,7 +107,6 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  // 最新順にソート (JS側で実行)
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => {
       const dateA = new Date(a.publishedAt).getTime();
@@ -131,24 +117,12 @@ export default function Home() {
 
   const filteredArticles = useMemo(() => {
     return sortedArticles.filter(a => {
-      // カテゴリーフィルター
       if (activeCategory !== 'All' && activeCategory !== 'Bookmarks') {
-        if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) {
-          return false;
-        }
+        if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
       }
-      
-      // ソース名フィルター
-      if (selectedSourceName && a.sourceName !== selectedSourceName) {
-        return false;
-      }
-      
-      // 検索クエリ
+      if (selectedSourceName && a.sourceName !== selectedSourceName) return false;
       const searchTarget = `${a.title} ${a.content} ${a.sourceName}`.toLowerCase();
-      if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      
+      if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) return false;
       return true;
     });
   }, [sortedArticles, activeCategory, selectedSourceName, searchQuery]);
@@ -165,24 +139,13 @@ export default function Home() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
-    
-    toast({
-      title: "同期を開始しました",
-      description: "AIが各ソースから最新情報を解析中...",
-    });
+    toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約中..." });
 
     try {
       const result = await syncRss({ sources: allSources });
-      toast({
-        title: result.addedCount > 0 ? "同期完了" : "更新なし",
-        description: `${result.addedCount}件の新しい記事を取得しました。`,
-      });
+      toast({ title: result.addedCount > 0 ? "同期完了" : "更新なし", description: `${result.addedCount}件の新しい記事を取得しました。` });
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "同期エラー",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: "同期エラー", description: error.message });
     } finally {
       setIsRefreshing(false);
     }
@@ -196,6 +159,13 @@ export default function Home() {
       setActiveCategory(source.category);
       setSelectedSourceName(source.name);
     }
+  };
+
+  const categoryNames: Record<string, string> = {
+    'All': 'すべて',
+    'Reliable': '信頼ソース',
+    'Discovery': 'ディスカバリー',
+    'Bookmarks': '保存済み'
   };
 
   return (
@@ -215,12 +185,12 @@ export default function Home() {
             <SidebarTrigger className="hover:bg-primary/10" />
             <div className="flex flex-col">
               <h2 className="font-headline text-lg md:text-2xl font-black uppercase tracking-tight">
-                {selectedSourceName || (activeCategory === 'Bookmarks' ? 'Vault' : 'Stream')}
+                {selectedSourceName || categoryNames[activeCategory] || 'ストリーム'}
               </h2>
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full", isRefreshing ? "bg-accent animate-spin" : "bg-primary animate-pulse")} />
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  SYNC: {latestUpdateDate ? format(latestUpdateDate, 'HH:mm') : '--:--'}
+                  最終同期: {latestUpdateDate ? format(latestUpdateDate, 'MM/dd HH:mm') : '--/-- --:--'}
                 </span>
               </div>
             </div>
@@ -231,7 +201,7 @@ export default function Home() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input 
                 className="pl-10 bg-secondary/50 border-none w-64 rounded-full h-10" 
-                placeholder="Search Insights..." 
+                placeholder="インサイトを検索..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -250,45 +220,35 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-4 md:p-10 space-y-10 max-w-[1800px] mx-auto w-full">
-          {/* 設定エラー警告 */}
-          {!firebaseConfig.projectId && (
-            <Alert variant="destructive" className="animate-bounce">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Configuration Missing</AlertTitle>
-              <AlertDescription>
-                FirebaseのプロジェクトIDが設定されていません。.env ファイルの NEXT_PUBLIC_FIREBASE_PROJECT_ID を確認してください。
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {articlesError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Database Error</AlertTitle>
-              <AlertDescription>{articlesError.message}</AlertDescription>
-            </Alert>
-          )}
-
           {activeCategory === 'All' && !selectedSourceName && heroArticles.length > 0 && (
             <section className="relative">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl group">
+                      <div className="relative h-[350px] md:h-[550px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl group">
                         <Image 
                           src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                           alt={article.title}
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
-                          <h1 className="font-headline text-2xl md:text-5xl font-black mb-4 tracking-tighter leading-tight">
+                          <div className="flex items-center gap-3 mb-4">
+                            <Badge className="bg-primary/20 backdrop-blur-md text-primary-foreground border-primary/30 py-1 px-3">
+                              {article.sourceName}
+                            </Badge>
+                            <span className="text-xs font-bold text-white/70 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {format(new Date(article.publishedAt), 'MM月dd日 HH:mm')}
+                            </span>
+                          </div>
+                          <h1 className="font-headline text-2xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg">
                             {article.title}
                           </h1>
-                          <Button asChild className="rounded-full px-8 h-12 font-bold">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">READ INSIGHT</a>
+                          <Button asChild className="rounded-full px-10 h-14 font-black text-lg neo-blur">
+                            <a href={article.link} target="_blank" rel="noopener noreferrer">インサイトを表示 <ArrowRight className="ml-2 w-5 h-5" /></a>
                           </Button>
                         </div>
                       </div>
@@ -303,24 +263,24 @@ export default function Home() {
             <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border">
                 <TabsList className="bg-transparent h-10">
-                  <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">All</TabsTrigger>
-                  <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary">Reliable</TabsTrigger>
-                  <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">Discovery</TabsTrigger>
+                  <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
+                  <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary">信頼ソース</TabsTrigger>
+                  <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">発見</TabsTrigger>
                   <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
                 </TabsList>
               </Tabs>
               <div className="flex items-center gap-4">
                 <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50">
                   <Database className="w-3 h-3 text-primary" />
-                  {filteredArticles.length} VISIBLE / {normalizedArticles.length} IN DB
+                  表示中: {filteredArticles.length} / 蓄積: {normalizedArticles.length}
                 </div>
                 {firebaseConfig.projectId ? (
                   <div className="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase">
-                    <CheckCircle2 className="w-3 h-3" /> ONLINE
+                    <CheckCircle2 className="w-3 h-3" /> オンライン
                   </div>
                 ) : (
                   <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase">
-                    <WifiOff className="w-3 h-3" /> CONFIG ERROR
+                    <WifiOff className="w-3 h-3" /> 設定エラー
                   </div>
                 )}
               </div>
@@ -346,15 +306,15 @@ export default function Home() {
                   <Info className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-black mb-2 uppercase">
-                  {normalizedArticles.length === 0 ? "Database Connection Idle" : "No Matches Found"}
+                  {normalizedArticles.length === 0 ? "データベース空状態" : "該当記事なし"}
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
                   {normalizedArticles.length === 0 
-                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を取得させてください。記事が蓄積されているのに表示されない場合は、Firebaseの設定（Project ID等）を再確認してください。"
-                    : `Firestoreには ${normalizedArticles.length} 件の記事がありますが、現在のフィルター（${activeCategory}）には一致しません。`}
+                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
+                    : `データベースには ${normalizedArticles.length} 件の記事がありますが、現在の条件には一致しません。`}
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "SYNCHRONIZING..." : "START AI SYNC"}
+                  {isRefreshing ? "AI同期中..." : "AI同期を開始する"}
                 </Button>
               </div>
             )}
