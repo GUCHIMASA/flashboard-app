@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -65,7 +66,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       onOpenChange(false);
       reset();
     } catch (error: any) {
-      console.error("Auth Error:", error.code, error.message);
+      // セントラルエラーハンドラーのガイドラインに基づき、console.error は避けてトーストで通知します
       let message = "認証中にエラーが発生しました。";
       
       switch (error.code) {
@@ -73,16 +74,22 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           message = "このメールアドレスは既に登録されています。ログインをお試しください。";
           break;
         case 'auth/invalid-credential':
-          message = "メールアドレスまたはパスワードが正しくありません。";
+          message = "メールアドレスまたはパスワードが正しくありません。入力内容を確認してください。";
           break;
         case 'auth/operation-not-allowed':
-          message = "現在、メールアドレス認証が有効になっていません。管理者に連絡してください。";
+          message = "現在、この認証方法は有効になっていません。管理者に連絡してください。";
           break;
         case 'auth/weak-password':
           message = "パスワードが短すぎます（6文字以上必要です）。";
           break;
+        case 'auth/user-not-found':
+          message = "アカウントが見つかりません。新規登録をお試しください。";
+          break;
+        case 'auth/wrong-password':
+          message = "パスワードが正しくありません。";
+          break;
         default:
-          message = error.message || message;
+          message = "エラーが発生しました。しばらく時間を置いてから再度お試しください。";
       }
       
       toast({ 
@@ -103,12 +110,13 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       toast({ title: "ログイン成功", description: "Googleアカウントでログインしました。" });
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Google Auth Error:", error);
-      toast({ 
-        variant: "destructive", 
-        title: "ログイン失敗", 
-        description: "Googleログインをキャンセルしたか、エラーが発生しました。" 
-      });
+      if (error.code !== 'auth/popup-closed-by-user') {
+        toast({ 
+          variant: "destructive", 
+          title: "ログイン失敗", 
+          description: "Googleログイン中にエラーが発生しました。" 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -131,7 +139,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="w-full">
+        <Tabs value={mode} onValueChange={(v) => {
+          setMode(v as any);
+          reset();
+        }} className="w-full">
           <TabsList className="grid w-full grid-cols-2 rounded-full mb-6 bg-secondary/50">
             <TabsTrigger value="login" className="rounded-full">ログイン</TabsTrigger>
             <TabsTrigger value="register" className="rounded-full">新規登録</TabsTrigger>
