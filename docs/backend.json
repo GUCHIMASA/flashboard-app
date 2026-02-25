@@ -42,6 +42,18 @@
         "category": { "type": "string" }
       },
       "required": ["id", "title", "link", "publishedAt"]
+    },
+    "Bookmark": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bookmark",
+      "type": "object",
+      "description": "A bookmarked article for a user.",
+      "properties": {
+        "articleId": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "bookmarkedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -51,31 +63,23 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "Stores individual user profiles."
-        }
+    "structure": {
+      "/users/{userId}": {
+        "schema": { "$ref": "#/backend/entities/User" },
+        "description": "Stores individual user profiles."
       },
-      {
-        "path": "/users/{userId}/sources/{sourceId}",
-        "definition": {
-          "entityName": "Source",
-          "schema": { "$ref": "#/backend/entities/Source" },
-          "description": "User-added custom RSS feeds."
-        }
+      "/users/{userId}/sources/{sourceId}": {
+        "schema": { "$ref": "#/backend/entities/Source" },
+        "description": "User-added custom RSS feeds."
       },
-      {
-        "path": "/articles/{articleId}",
-        "definition": {
-          "entityName": "Article",
-          "schema": { "$ref": "#/backend/entities/Article" },
-          "description": "Public repository of all aggregated and AI-summarized articles."
-        }
+      "/users/{userId}/bookmarks/{bookmarkId}": {
+        "schema": { "$ref": "#/backend/entities/Bookmark" },
+        "description": "User bookmarked articles."
+      },
+      "/articles/{articleId}": {
+        "schema": { "$ref": "#/backend/entities/Article" },
+        "description": "Public repository of all aggregated and AI-summarized articles."
       }
-    ]
+    }
   }
 }

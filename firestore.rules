@@ -14,7 +14,7 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // ユーザープロファイルと、その配下のカスタムデータ（ソース、ブックマーク）
+    // ユーザープロファイルとその配下のデータ（ソース、ブックマーク）
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
@@ -25,24 +25,23 @@ service cloud.firestore {
       match /bookmarks/{bookmarkId} {
         allow read, write: if isOwner(userId);
       }
+
+      // サブコレクション全体への再帰的な許可
+      match /{allPaths=**} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // 収集された記事データ
     match /articles/{articleId} {
-      // 誰でも閲覧可能（未ログインでもOK）
-      allow read, list: if true;
+      // 誰でも閲覧可能（一覧取得 list も個別取得 get も許可）
+      allow read: if true;
       
-      // 書き込みは認証済みユーザーのみ（同期処理など）
+      // 書き込み（同期処理）は認証済みユーザーのみ
       allow create, update: if isSignedIn();
       
-      // 削除は管理者のみ（必要に応じて設定）
+      // 削除は管理者のみ（必要に応じて調整）
       allow delete: if isSignedIn();
-    }
-
-    // 互換性のためのエイリアス（もしcontentItemsが使われている場合）
-    match /contentItems/{contentItemId} {
-      allow read, list: if true;
-      allow write: if isSignedIn();
     }
   }
 }
