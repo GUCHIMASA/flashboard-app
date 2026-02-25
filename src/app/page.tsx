@@ -140,7 +140,7 @@ export default function Home() {
   useEffect(() => {
     const observerOptions = {
       root: null,
-      rootMargin: '-40% 0% -40% 0%', // 画面中央付近を検知範囲にする
+      rootMargin: '-45% 0% -45% 0%', // 画面中央付近を検知範囲にする
       threshold: 0
     };
 
@@ -155,7 +155,6 @@ export default function Home() {
 
     const observer = new IntersectionObserver(observerCallback, observerOptions);
     
-    // 現在表示されている全てのカードを監視対象にする
     Object.values(cardRefs.current).forEach(el => {
       if (el) observer.observe(el);
     });
@@ -211,14 +210,14 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header />
-        <div className="flex-1 p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+        <div className="flex-1 p-4 md:p-8 space-y-4 max-w-[1600px] mx-auto w-full">
           {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
-            <section className="relative overflow-hidden rounded-3xl shadow-xl">
+            <section className="relative overflow-hidden rounded-3xl shadow-xl mb-6">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[300px] md:h-[450px] w-full overflow-hidden">
+                      <div className="relative h-[250px] md:h-[400px] w-full overflow-hidden">
                         <Image 
                           src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                           alt={article.title}
@@ -228,19 +227,19 @@ export default function Home() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full">
-                          <div className="flex items-center gap-3 mb-3">
-                            <Badge className="bg-primary border-none">{article.sourceName}</Badge>
-                            <span className="text-xs text-white/70 flex items-center gap-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge className="bg-primary border-none text-[10px] h-5">{article.sourceName}</Badge>
+                            <span className="text-[10px] text-white/70 flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
                             </span>
                           </div>
-                          <h1 className="text-2xl md:text-4xl font-black mb-4 text-white line-clamp-2 leading-tight">
+                          <h1 className="text-xl md:text-3xl font-black mb-3 text-white line-clamp-2 leading-tight">
                             {article.title}
                           </h1>
-                          <Button asChild className="rounded-full px-6 h-10 font-bold">
+                          <Button asChild size="sm" className="rounded-full px-4 h-8 text-xs font-bold">
                             <a href={article.link} target="_blank" rel="noopener noreferrer">
-                              詳しく読む <ArrowRight className="ml-2 w-4 h-4" />
+                              詳しく読む <ArrowRight className="ml-2 w-3 h-3" />
                             </a>
                           </Button>
                         </div>
@@ -252,46 +251,46 @@ export default function Home() {
             </section>
           )}
 
-          <section className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <section className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-1 rounded-full">
-                  <TabsList className="bg-transparent h-9">
-                    <TabsTrigger value="All" className="rounded-full px-4">すべて</TabsTrigger>
-                    <TabsTrigger value="Reliable" className="rounded-full px-4">信頼</TabsTrigger>
-                    <TabsTrigger value="Discovery" className="rounded-full px-4">発見</TabsTrigger>
-                    <TabsTrigger value="Bookmarks" className="rounded-full px-3"><Bookmark className="w-4 h-4" /></TabsTrigger>
+                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-0.5 rounded-full">
+                  <TabsList className="bg-transparent h-8">
+                    <TabsTrigger value="All" className="rounded-full px-3 text-xs">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-3 text-xs">信頼</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-3 text-xs">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-2"><Bookmark className="w-3.5 h-3.5" /></TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
               
-              <div className="flex items-center gap-3">
-                <div className="bg-muted px-3 py-1.5 rounded-full text-[10px] font-bold text-muted-foreground flex items-center gap-2">
-                  <Database className="w-3 h-3 text-primary" />
+              <div className="flex items-center gap-2">
+                <div className="bg-muted px-2 py-1 rounded-full text-[9px] font-bold text-muted-foreground flex items-center gap-1.5">
+                  <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
                 {isAdmin && (
-                  <Button variant="outline" size="sm" className="rounded-full h-9 border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "同期中..." : "最新記事を取得"}
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <TagIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+            <div className="flex items-center gap-2">
+              <TagIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <ScrollArea className="w-full">
-                <div className="flex gap-2 pb-2">
+                <div className="flex gap-1.5 pb-2">
                   {selectedTag && (
-                    <Badge variant="default" className="cursor-pointer bg-primary gap-1" onClick={() => setSelectedTag(null)}>
-                      #{selectedTag} <X className="w-3 h-3" />
+                    <Badge variant="default" className="cursor-pointer bg-primary gap-1 text-[10px] h-6" onClick={() => setSelectedTag(null)}>
+                      #{selectedTag} <X className="w-2.5 h-2.5" />
                     </Badge>
                   )}
                   {AVAILABLE_TAGS.filter(t => t !== selectedTag).map(tag => (
                     <Badge 
                       key={tag} 
                       variant="outline" 
-                      className="cursor-pointer hover:bg-primary/10 border-muted"
+                      className="cursor-pointer hover:bg-primary/10 border-muted text-[10px] h-6 text-muted-foreground"
                       onClick={() => setSelectedTag(tag)}
                     >
                       #{tag}
@@ -303,20 +302,20 @@ export default function Home() {
             </div>
 
             {articlesLoading && filteredArticles.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filteredArticles.map((article) => (
                   <div 
                     key={article.id} 
                     ref={el => { cardRefs.current[article.id] = el }}
                     data-article-id={article.id}
                     onClick={() => setActiveArticleId(article.id)}
-                    className="cursor-pointer transition-transform duration-300"
+                    className="cursor-pointer"
                   >
                     <FeedCard 
                       article={article} 
@@ -326,11 +325,11 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="py-20 text-center bg-muted/30 rounded-3xl border border-dashed border-muted">
-                <Info className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-bold mb-2">該当する記事はありません</h3>
-                <p className="text-muted-foreground mb-6">条件を変更してお試しください。</p>
-                <Button variant="outline" className="rounded-full" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
+              <div className="py-20 text-center bg-muted/10 rounded-3xl border border-dashed border-muted">
+                <Info className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-bold mb-1">該当する記事はありません</h3>
+                <p className="text-xs text-muted-foreground mb-6">条件を変更してお試しください。</p>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
                   フィルターをクリア
                 </Button>
               </div>
