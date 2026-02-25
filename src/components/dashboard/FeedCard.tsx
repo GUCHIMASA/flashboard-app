@@ -63,48 +63,33 @@ export function FeedCard({ article }: FeedCardProps) {
 
   const favicon = getFaviconUrl(article.link);
 
-  const categoryLabels: Record<string, string> = {
-    'Reliable': '信頼',
-    'Discovery': '発見',
-    'Custom': 'カスタム'
-  };
-
   return (
-    <Card className="group relative flex flex-col h-full border-white/5 bg-card/40 backdrop-blur-sm hover:bg-card/60 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
-      
-      <CardHeader className="p-3 md:p-5 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary-foreground text-[8px] md:text-[10px] uppercase font-bold border-none px-2 py-0.5 rounded-md">
-            {categoryLabels[article.category] || article.category}
-          </Badge>
-          <span className="text-[8px] md:text-[10px] font-medium text-muted-foreground/80">
-            {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
-          </span>
-        </div>
-        <div className="space-y-1">
+    <Card className="flex flex-col h-full bg-card border-border hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden group">
+      <CardHeader className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5">
+            <div className="w-4 h-4 rounded-sm overflow-hidden bg-muted flex items-center justify-center">
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-3 h-3 text-muted-foreground/50" />
+                <Globe className="w-3 h-3 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter truncate">
+            <span className="text-xs font-bold text-primary truncate">
               {article.sourceName}
             </span>
           </div>
-          <h3 className="font-headline text-[12px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
-            {article.title}
-          </h3>
+          <span className="text-[10px] text-muted-foreground">
+            {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
+          </span>
         </div>
-
-        {/* タグ表示 */}
+        <h3 className="text-base font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+          {article.title}
+        </h3>
         {article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+          <div className="flex flex-wrap gap-1">
             {article.tags.map(tag => (
-              <Badge key={tag} variant="outline" className="text-[8px] py-0 px-1.5 border-white/10 text-muted-foreground/80 font-normal">
+              <Badge key={tag} variant="outline" className="text-[9px] py-0 px-1.5 border-muted text-muted-foreground">
                 #{tag}
               </Badge>
             ))}
@@ -112,44 +97,34 @@ export function FeedCard({ article }: FeedCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="px-3 md:px-5 py-2 flex-grow">
-        <div className="relative bg-white/5 border border-white/5 rounded-2xl p-3 md:p-5 overflow-hidden group/summary">
-          <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
-          
-          <div className="flex items-center gap-2 mb-2 text-primary">
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
-            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em]">AI 要約インサイト</span>
+      <CardContent className="px-4 py-2 flex-grow">
+        <div className="bg-muted/50 rounded-xl p-3 border border-border/50">
+          <div className="flex items-center gap-1.5 mb-1.5 text-primary">
+            <Sparkles className="w-3 h-3" />
+            <span className="text-[10px] font-black uppercase tracking-wider">AI Insight</span>
           </div>
-
           {article.summary ? (
-            <div className="text-[11px] md:text-[14px] text-foreground/90 leading-relaxed font-medium whitespace-pre-line relative z-10">
+            <p className="text-xs text-foreground/80 leading-relaxed line-clamp-4">
               {article.summary}
-            </div>
+            </p>
           ) : (
-            <p className="text-[10px] text-muted-foreground italic">解析中...</p>
+            <p className="text-[10px] text-muted-foreground italic">要約を生成中...</p>
           )}
         </div>
       </CardContent>
 
-      <CardFooter className="px-3 md:px-5 py-3 md:py-4 flex items-center justify-between border-t border-white/5">
+      <CardFooter className="p-4 pt-2 flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/5">
-            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleBookmark} disabled={isBookmarked}>
+            {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn("h-8 w-8 rounded-full transition-all", isBookmarked ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-white/5")}
-            onClick={handleBookmark}
-            disabled={isBookmarked}
-          >
-            {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <Share2 className="h-4 w-4" />
           </Button>
         </div>
-        <Button asChild variant="link" size="sm" className="text-[10px] md:text-xs font-bold text-primary p-0 h-auto hover:no-underline group/link">
+        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-bold">
           <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-            全文を読む
-            <ExternalLink className="h-3 w-3 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" />
+            記事を読む <ExternalLink className="h-3 w-3" />
           </a>
         </Button>
       </CardFooter>

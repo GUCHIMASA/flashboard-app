@@ -12,7 +12,7 @@ import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit, orderBy } from 'firebase/firestore';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
@@ -22,7 +22,6 @@ import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
-// 管理者のメールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 const AVAILABLE_TAGS = [
@@ -46,7 +45,6 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // 管理者判定
   const isAdmin = useMemo(() => {
     return user && user.email === ADMIN_EMAIL;
   }, [user]);
@@ -69,7 +67,7 @@ export default function Home() {
 
   const articlesQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'articles'), limit(100));
+    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(100));
   }, [db]);
   const { data: firestoreArticles, loading: articlesLoading } = useCollection(articlesQuery);
 
@@ -117,16 +115,8 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  const sortedArticles = useMemo(() => {
-    return [...displayArticles].sort((a, b) => {
-      const dateA = new Date(a.publishedAt).getTime();
-      const dateB = new Date(b.publishedAt).getTime();
-      return (dateB || 0) - (dateA || 0);
-    });
-  }, [displayArticles]);
-
   const filteredArticles = useMemo(() => {
-    return sortedArticles.filter(a => {
+    return displayArticles.filter(a => {
       if (activeCategory !== 'All' && activeCategory !== 'Bookmarks') {
         if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
       }
@@ -136,11 +126,11 @@ export default function Home() {
       if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [sortedArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
+  }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
   const heroArticles = useMemo(() => {
-    return sortedArticles.slice(0, 5);
-  }, [sortedArticles]);
+    return normalizedArticles.slice(0, 5);
+  }, [normalizedArticles]);
 
   const handleRefresh = async () => {
     if (isRefreshing || !isAdmin) return;
@@ -174,7 +164,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden">
+    <div className="flex min-h-screen w-full bg-background overflow-x-hidden">
       <DashboardSidebar 
         activeCategory={activeCategory as any} 
         selectedSourceName={selectedSourceName}
@@ -188,39 +178,39 @@ export default function Home() {
         onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" })}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+      <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header />
-        <div className="flex-1 p-4 md:p-10 space-y-10 max-w-full md:max-w-[1800px] mx-auto w-full overflow-x-hidden">
+        <div className="flex-1 p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
           {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
-            <section className="relative overflow-hidden rounded-[2.5rem]">
+            <section className="relative overflow-hidden rounded-3xl shadow-xl">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
                   {heroArticles.map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[350px] md:h-[550px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl group">
+                      <div className="relative h-[300px] md:h-[450px] w-full overflow-hidden">
                         <Image 
                           src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                           alt={article.title}
                           fill
-                          className="object-cover transition-transform duration-[10s] group-hover:scale-110"
+                          className="object-cover"
                           priority
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                        <div className="absolute bottom-0 left-0 p-6 md:p-16 w-full max-w-4xl">
-                          <div className="flex items-center gap-3 mb-4">
-                            <Badge className="bg-primary/20 backdrop-blur-md text-primary-foreground border-primary/30 py-1 px-3">
-                              {article.sourceName}
-                            </Badge>
-                            <span className="text-xs font-bold text-white/70 flex items-center gap-1">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Badge className="bg-primary border-none">{article.sourceName}</Badge>
+                            <span className="text-xs text-white/70 flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
                               {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
                             </span>
                           </div>
-                          <h1 className="font-headline text-xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg line-clamp-2 md:line-clamp-none">
+                          <h1 className="text-2xl md:text-4xl font-black mb-4 text-white line-clamp-2 leading-tight">
                             {article.title}
                           </h1>
-                          <Button asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 font-black text-sm md:text-lg neo-blur">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">全文を読む <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" /></a>
+                          <Button asChild className="rounded-full px-6 h-10 font-bold">
+                            <a href={article.link} target="_blank" rel="noopener noreferrer">
+                              詳しく読む <ArrowRight className="ml-2 w-4 h-4" />
+                            </a>
                           </Button>
                         </div>
                       </div>
@@ -231,45 +221,38 @@ export default function Home() {
             </section>
           )}
 
-          <section className="w-full">
-            <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border shrink-0 inline-flex">
-                  <TabsList className="bg-transparent h-10">
-                    <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
-                    <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary whitespace-nowrap">信頼ソース</TabsTrigger>
-                    <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">発見</TabsTrigger>
-                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-1 rounded-full">
+                  <TabsList className="bg-transparent h-9">
+                    <TabsTrigger value="All" className="rounded-full px-4">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-4">信頼</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-4">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-3"><Bookmark className="w-4 h-4" /></TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
               
-              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                <div className="flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50 text-[10px] font-black text-muted-foreground whitespace-nowrap">
+              <div className="flex items-center gap-3">
+                <div className="bg-muted px-3 py-1.5 rounded-full text-[10px] font-bold text-muted-foreground flex items-center gap-2">
                   <Database className="w-3 h-3 text-primary" />
-                  {filteredArticles.length} / {normalizedArticles.length}
+                  {filteredArticles.length} 件
                 </div>
                 {isAdmin && (
-                  <Button variant="outline" size="sm" className="rounded-full h-9 px-4 font-bold border-primary/30 hover:bg-primary/10 whitespace-nowrap" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "AI同期中..." : "AI同期"}
+                  <Button variant="outline" size="sm" className="rounded-full h-9 border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? "同期中..." : "最新記事を取得"}
                   </Button>
                 )}
               </div>
             </div>
 
-            <div className="mb-8 flex items-center gap-3 w-full">
-              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                <TagIcon className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">タグ絞り込み:</span>
-              </div>
-              <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex items-center gap-3">
+              <TagIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+              <ScrollArea className="w-full">
                 <div className="flex gap-2 pb-2">
                   {selectedTag && (
-                    <Badge 
-                      variant="default" 
-                      className="cursor-pointer px-4 py-1.5 rounded-full bg-primary flex items-center gap-2"
-                      onClick={() => setSelectedTag(null)}
-                    >
+                    <Badge variant="default" className="cursor-pointer bg-primary gap-1" onClick={() => setSelectedTag(null)}>
                       #{selectedTag} <X className="w-3 h-3" />
                     </Badge>
                   )}
@@ -277,61 +260,37 @@ export default function Home() {
                     <Badge 
                       key={tag} 
                       variant="outline" 
-                      className="cursor-pointer px-4 py-1.5 rounded-full border-white/10 hover:bg-white/5 transition-colors"
+                      className="cursor-pointer hover:bg-primary/10 border-muted"
                       onClick={() => setSelectedTag(tag)}
                     >
                       #{tag}
                     </Badge>
                   ))}
                 </div>
-                <ScrollBar orientation="horizontal" className="h-1.5" />
+                <ScrollBar orientation="horizontal" />
               </ScrollArea>
             </div>
 
-            {articlesLoading && normalizedArticles.length === 0 ? (
+            {articlesLoading && filteredArticles.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] rounded-[2rem] bg-secondary/50 animate-pulse" />
+                  <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              /* 
-                 モバイル表示時の「スタッキング（重なり）スクロール」エフェクト 
-                 デスクトップでは通常のグリッドレイアウトを維持
-              */
-              <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative">
-                {filteredArticles.map((article, index) => (
-                  <div 
-                    key={article.id} 
-                    className="sticky top-20 sm:relative sm:top-0 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4" 
-                    style={{ 
-                      animationDelay: `${index * 50}ms`,
-                      marginTop: index > 0 ? '-8rem' : '0', // モバイルでの重なりエフェクト
-                      zIndex: index + 1 
-                    }}
-                  >
-                    <div className="bg-background rounded-[2rem] shadow-2xl sm:shadow-none">
-                      <FeedCard article={article} />
-                    </div>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredArticles.map((article) => (
+                  <FeedCard key={article.id} article={article} />
                 ))}
               </div>
             ) : (
-              <div className="py-20 md:py-32 text-center glass-panel rounded-[2rem] md:rounded-[3rem]">
-                <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary mb-6 animate-bounce">
-                  <Info className="w-6 h-6 md:w-8 md:h-8" />
-                </div>
-                <h3 className="text-xl md:text-2xl font-black mb-2 uppercase">
-                  該当記事なし
-                </h3>
-                <p className="text-muted-foreground text-sm max-w-xs md:max-w-md mx-auto mb-8 px-4">
-                  {selectedTag ? `タグ「#${selectedTag}」に一致する記事はありません。` : "現在の条件に一致する記事は見つかりませんでした。"}
-                </p>
-                {(selectedTag || searchQuery || activeCategory !== 'All') && (
-                  <Button variant="outline" className="rounded-full px-8" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
-                    すべての条件をクリア
-                  </Button>
-                )}
+              <div className="py-20 text-center bg-muted/30 rounded-3xl border border-dashed border-muted">
+                <Info className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-bold mb-2">該当する記事はありません</h3>
+                <p className="text-muted-foreground mb-6">条件を変更してお試しください。</p>
+                <Button variant="outline" className="rounded-full" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
+                  フィルターをクリア
+                </Button>
               </div>
             )}
           </section>
@@ -342,16 +301,10 @@ export default function Home() {
         open={isAddSourceOpen} 
         onOpenChange={setIsAddSourceOpen} 
         onAdd={(s) => {
-          if (!user) {
-            toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" });
-            return;
-          }
-          if (db) {
-            addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
-          }
+          if (!user) return;
+          addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
         }}
       />
     </div>
   );
 }
-
