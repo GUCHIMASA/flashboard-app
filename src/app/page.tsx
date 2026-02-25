@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -13,7 +13,7 @@ import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit, orderBy } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
@@ -30,7 +30,6 @@ export default function Home() {
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
   
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
@@ -38,13 +37,6 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  useEffect(() => {
-    if (!api) return;
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-  }, [api]);
 
   // カスタムソースの取得
   const sourcesQuery = useMemo(() => {
@@ -63,10 +55,10 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 記事の取得
+  // 記事の取得 (インデックスエラーを避けるため、最初は単純なクエリにする)
   const articlesQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'articles'), limit(50));
+    return query(collection(db, 'articles'), limit(100));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading, error: articlesError } = useCollection(articlesQuery);
 
@@ -90,35 +82,46 @@ export default function Home() {
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
-  // データ整形 (url/link フィールドの揺らぎを確実に吸収)
+  // データ整形 (url/link フィールドの不一致を吸収)
   const normalizedArticles = useMemo(() => {
-    console.log("Processing Firestore Articles:", firestoreArticles.length);
-    return (firestoreArticles as any[]).map(a => ({
-      ...a,
-      id: a.id,
-      title: a.title || 'No Title',
-      link: a.link || a.url || '#',
-      category: a.category || 'Reliable',
-      sourceName: a.sourceName || 'Unknown',
-      publishedAt: a.publishedAt || a.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-      imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
-    })) as Article[];
+    console.log("🔥 Firestore Raw Data Count:", firestoreArticles.length);
+    return (firestoreArticles as any[]).map(a => {
+      // 日付の正規化 (Timestamp, String, createdAt)
+      let dateStr = a.publishedAt;
+      if (!dateStr && a.createdAt?.toDate) {
+        dateStr = a.createdAt.toDate().toISOString();
+      }
+      if (!dateStr) {
+        dateStr = new Date().toISOString();
+      }
+
+      return {
+        ...a,
+        id: a.id,
+        title: a.title || 'No Title',
+        link: a.link || a.url || '#',
+        category: a.category || 'Reliable',
+        sourceName: a.sourceName || 'Unknown',
+        publishedAt: dateStr,
+        imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
+      };
+    }) as Article[];
   }, [firestoreArticles]);
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  // 最新順にソート
+  // 最新順にソート (JS側で実行)
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => {
       const dateA = new Date(a.publishedAt).getTime();
       const dateB = new Date(b.publishedAt).getTime();
-      return isNaN(dateB) || isNaN(dateA) ? 0 : dateB - dateA;
+      return (dateB || 0) - (dateA || 0);
     });
   }, [displayArticles]);
 
   const filteredArticles = useMemo(() => {
     return sortedArticles.filter(a => {
-      // カテゴリーフィルター (大文字小文字の違いなどを許容)
+      // カテゴリーフィルター
       if (activeCategory !== 'All' && activeCategory !== 'Bookmarks') {
         if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) {
           return false;
@@ -160,23 +163,10 @@ export default function Home() {
 
     try {
       const result = await syncRss({ sources: allSources });
-      if (result.addedCount > 0) {
-        toast({
-          title: "同期完了",
-          description: `${result.addedCount}件の新しい記事を取得しました。`,
-        });
-      } else if (result.errors.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "一部でエラーが発生しました",
-          description: result.errors[0],
-        });
-      } else {
-        toast({
-          title: "更新なし",
-          description: "新しい記事は見つかりませんでした。",
-        });
-      }
+      toast({
+        title: result.addedCount > 0 ? "同期完了" : "更新なし",
+        description: `${result.addedCount}件の新しい記事を取得しました。`,
+      });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -253,7 +243,7 @@ export default function Home() {
           {articlesError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Firestore Error</AlertTitle>
+              <AlertTitle>Database Error</AlertTitle>
               <AlertDescription>{articlesError.message}</AlertDescription>
             </Alert>
           )}
@@ -270,7 +260,6 @@ export default function Home() {
                           alt={article.title}
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
-                          data-ai-hint="futuristic landscape"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
@@ -300,8 +289,8 @@ export default function Home() {
                 </TabsList>
               </Tabs>
               <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                <Filter className="w-3 h-3 text-primary" />
-                {filteredArticles.length} INSIGHTS / {normalizedArticles.length} TOTAL
+                <Database className="w-3 h-3 text-primary" />
+                {filteredArticles.length} VISIBLE / {normalizedArticles.length} IN DB
               </div>
             </div>
 
@@ -324,13 +313,16 @@ export default function Home() {
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-6 animate-bounce">
                   <Info className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-black mb-2 uppercase">No Data Found</h3>
+                <h3 className="text-2xl font-black mb-2 uppercase">
+                  {normalizedArticles.length === 0 ? "Database is Empty" : "No Matches Found"}
+                </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
-                  Firestoreには {normalizedArticles.length} 件の記事がありますが、現在のフィルターには一致しません。<br />
-                  左メニューのソース選択を解除するか、カテゴリーを確認してください。
+                  {normalizedArticles.length === 0 
+                    ? "データベースに記事がありません。右上の同期ボタンを押してAIに記事を取得させてください。"
+                    : `Firestoreには ${normalizedArticles.length} 件の記事がありますが、現在のフィルター（${activeCategory}）には一致しません。`}
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "SYNCHRONIZING..." : "REFRESH DATA"}
+                  {isRefreshing ? "SYNCHRONIZING..." : "INITIALIZE SYNC"}
                 </Button>
               </div>
             )}
