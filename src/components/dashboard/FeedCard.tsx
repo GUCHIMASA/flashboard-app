@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Article } from '@/app/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 interface FeedCardProps {
