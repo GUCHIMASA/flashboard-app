@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
@@ -48,18 +47,21 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeCardId, setActiveCardId] = useState<string | null>(null);
 
-  // Intersection Observer for mobile stacking effect
+  // Intersection Observer for mobile stacking focus
   const observer = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     observer.current = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
           const id = entry.target.getAttribute('data-article-id');
           setActiveCardId(id);
         }
       });
-    }, { threshold: 0.5, rootMargin: '-20% 0px -20% 0px' });
+    }, { 
+      threshold: 0.6, 
+      rootMargin: '-20% 0px -20% 0px' 
+    });
 
     return () => observer.current?.disconnect();
   }, []);
@@ -329,23 +331,25 @@ export default function Home() {
                         "min-h-[400px] md:min-h-0"
                       )}
                       style={{ 
-                        // 下のカードを上に引き寄せて重ねる。中央のカード（isActive）は余白を広げて読めるようにする。
+                        // 下のカードを上に深く引き寄せて重ねる。
+                        // isActiveでない（下に控えている）カードは大きくマージンを下げてタイトルのみが見えるようにする
                         marginTop: !isActive && index > 0 ? '-14rem' : '0',
                         zIndex: index,
-                        marginBottom: isActive ? '4rem' : '2rem',
-                        transform: !isActive && index > 0 ? 'translateY(0)' : 'translateY(0)'
+                        // 中央のカードは上下に余白を持たせて読みやすくする
+                        marginBottom: isActive ? '4rem' : '1rem',
                       }}
                     >
                       <div className={cn(
                         "bg-background rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-500",
-                        isActive ? "scale-100 opacity-100 ring-4 ring-primary/20" : "scale-[0.98] opacity-90"
+                        isActive ? "scale-100 opacity-100 ring-4 ring-primary/20" : "scale-[0.96] opacity-90 blur-[0.5px]"
                       )}>
                         <FeedCard article={article} />
                       </div>
                     </div>
                   );
                 })}
-                <div className="h-40 sm:hidden" />
+                {/* スクロール末尾の余白 */}
+                <div className="h-60 sm:hidden" />
               </div>
             ) : (
               <div className="py-20 md:py-32 text-center glass-panel rounded-[2rem] md:rounded-[3rem]">
@@ -385,4 +389,3 @@ export default function Home() {
     </div>
   );
 }
-
