@@ -2,10 +2,9 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
-import { AdCard } from '@/components/dashboard/AdCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -24,6 +23,7 @@ import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 export default function Home() {
   const { user } = useUser();
@@ -68,10 +68,10 @@ export default function Home() {
 
   const articlesQuery = useMemo(() => {
     if (!db) return null;
-    // 重いクエリを避けるため最初はシンプルに取得
-    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(40));
+    // インデックス作成前でも動作するよう、最初はシンプルなクエリにする
+    return query(collection(db, 'articles'), limit(50));
   }, [db]);
-  const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
+  const { data: firestoreArticles = [], loading: articlesLoading, error: articlesError } = useCollection(articlesQuery);
 
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -94,8 +94,15 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : (firestoreArticles as Article[]);
 
+  // クライアントサイドでソート
+  const sortedArticles = useMemo(() => {
+    return [...displayArticles].sort((a, b) => 
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+  }, [displayArticles]);
+
   const filteredArticles = useMemo(() => {
-    return displayArticles
+    return sortedArticles
       .filter(a => {
         if (activeCategory !== 'All' && activeCategory !== 'Bookmarks' && a.category !== activeCategory) {
           return false;
@@ -109,7 +116,7 @@ export default function Home() {
         }
         return true;
       });
-  }, [displayArticles, activeCategory, selectedSourceName, searchQuery]);
+  }, [sortedArticles, activeCategory, selectedSourceName, searchQuery]);
 
   const latestUpdateDate = useMemo(() => {
     if (filteredArticles.length === 0) return null;
@@ -117,8 +124,8 @@ export default function Home() {
   }, [filteredArticles]);
 
   const heroArticles = useMemo(() => {
-    return (firestoreArticles as Article[]).slice(0, 5);
-  }, [firestoreArticles]);
+    return sortedArticles.slice(0, 5);
+  }, [sortedArticles]);
 
   const handleAddSource = (newSource: Omit<FeedSource, 'id'>) => {
     if (!db || !user) return;
@@ -151,9 +158,6 @@ export default function Home() {
 
     try {
       const result = await syncRss({ sources: allSources });
-      if (result.errors.length > 0) {
-        console.warn('Sync issues:', result.errors);
-      }
       toast({
         title: "同期完了",
         description: `${result.addedCount}件の新しい記事を取得しました。`,
@@ -163,7 +167,7 @@ export default function Home() {
       toast({
         variant: "destructive",
         title: "同期エラー",
-        description: "APIキーやネットワーク設定を確認してください。",
+        description: "APIキーの設定を確認してください。",
       });
     } finally {
       setIsRefreshing(false);
@@ -250,6 +254,16 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-2.5 md:p-8 space-y-6 md:space-y-12 max-w-[1600px] mx-auto w-full">
+          {articlesError && (
+            <Alert variant="destructive" className="rounded-2xl border-destructive/20 bg-destructive/5">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>システムエラー</AlertTitle>
+              <AlertDescription>
+                データの読み込みに失敗しました。{articlesError.message.includes('index') && "Firestoreのインデックス作成が必要です。"}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {activeCategory === 'All' && !selectedSourceName && !searchQuery && heroArticles.length > 0 && (
             <section className="relative">
               <Carousel 
@@ -268,12 +282,13 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover/hero:scale-110"
                           priority
+                          data-ai-hint="hero image"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden md:block" />
                         
                         <div className="absolute bottom-0 left-0 p-5 md:p-20 w-full md:max-w-5xl">
-                          <div className="flex items-center gap-3 mb-3 md:mb-6 animate-in slide-in-from-bottom duration-500">
+                          <div className="flex items-center gap-3 mb-3 md:mb-6">
                             <div className="inline-flex items-center gap-2 bg-primary px-3 py-1 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white">
                               <Zap className="w-3 h-3" />
                               FEATURED INSIGHT
@@ -282,13 +297,13 @@ export default function Home() {
                               {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
                             </div>
                           </div>
-                          <h1 className="font-headline text-xl xs:text-3xl md:text-6xl font-black mb-3 md:mb-6 tracking-tighter leading-[1] text-foreground dark:text-white animate-in slide-in-from-bottom duration-700 delay-100">
+                          <h1 className="font-headline text-xl xs:text-3xl md:text-6xl font-black mb-3 md:mb-6 tracking-tighter leading-[1] text-foreground dark:text-white">
                             {article.title}
                           </h1>
-                          <p className="text-foreground/70 dark:text-white/70 text-xs md:text-xl mb-6 md:mb-10 line-clamp-2 max-w-3xl font-medium hidden xs:block animate-in slide-in-from-bottom duration-700 delay-200">
+                          <p className="text-foreground/70 dark:text-white/70 text-xs md:text-xl mb-6 md:mb-10 line-clamp-2 max-w-3xl font-medium hidden xs:block">
                             {article.summary || article.content}
                           </p>
-                          <div className="flex items-center gap-4 animate-in slide-in-from-bottom duration-700 delay-300">
+                          <div className="flex items-center gap-4">
                             <Button asChild size="lg" className="bg-primary text-white hover:bg-primary/90 transition-all font-black px-8 rounded-full h-10 md:h-14">
                               <a href={article.link} target="_blank" rel="noopener noreferrer">
                                 EXPLORE <ArrowRight className="w-5 h-5 ml-2" />
@@ -300,19 +315,6 @@ export default function Home() {
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                
-                <div className="absolute bottom-6 right-8 flex gap-2 z-10 md:bottom-12 md:right-20">
-                  {Array.from({ length: count }).map((_, index) => (
-                    <button
-                      key={index}
-                      className={cn(
-                        "h-1.5 rounded-full transition-all duration-500",
-                        current === index ? "bg-primary w-12" : "bg-foreground/20 dark:bg-white/20 w-4 hover:bg-foreground/40 dark:hover:bg-white/40"
-                      )}
-                      onClick={() => api?.scrollTo(index)}
-                    />
-                  ))}
-                </div>
               </Carousel>
             </section>
           )}
