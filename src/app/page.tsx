@@ -295,10 +295,24 @@ export default function Home() {
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              /* 
+                 モバイル表示時の「スタッキング（重なり）スクロール」エフェクト 
+                 デスクトップでは通常のグリッドレイアウトを維持
+              */
+              <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative">
                 {filteredArticles.map((article, index) => (
-                  <div key={article.id} className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: `${index * 50}ms` }}>
-                    <FeedCard article={article} />
+                  <div 
+                    key={article.id} 
+                    className="sticky top-20 sm:relative sm:top-0 transition-all duration-500 animate-in fade-in slide-in-from-bottom-4" 
+                    style={{ 
+                      animationDelay: `${index * 50}ms`,
+                      marginTop: index > 0 ? '-8rem' : '0', // モバイルでの重なりエフェクト
+                      zIndex: index + 1 
+                    }}
+                  >
+                    <div className="bg-background rounded-[2rem] shadow-2xl sm:shadow-none">
+                      <FeedCard article={article} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -340,3 +354,4 @@ export default function Home() {
     </div>
   );
 }
+
