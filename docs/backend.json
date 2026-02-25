@@ -1,43 +1,212 @@
 {
   "entities": {
-    "Article": {
-      "title": "Article",
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
       "type": "object",
-      "description": "AIによって要約・翻訳されたテックニュース記事",
+      "description": "Represents a user of the AI Synapse application, primarily for managing personalized settings like custom RSS feeds.",
       "properties": {
-        "title": { "type": "string" },
-        "summary": { "type": "string" },
-        "link": { "type": "string", "format": "uri" },
-        "sourceName": { "type": "string" },
-        "imageUrl": { "type": "string", "format": "uri" },
-        "publishedAt": { "type": "string", "format": "date-time" },
-        "category": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["title", "link", "sourceName"]
+      "required": [
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
     },
     "Source": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Source",
       "type": "object",
-      "description": "ユーザーが追加したカスタムRSSフィード設定",
+      "description": "Represents a content source from which articles or items are aggregated, including official RSS feeds, discovery platforms, and user-added RSS feeds.",
       "properties": {
-        "name": { "type": "string" },
-        "url": { "type": "string", "format": "uri" },
-        "category": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Source entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The display name of the content source (e.g., 'OpenAI Blog', 'Product Hunt', 'My Custom Feed')."
+        },
+        "url": {
+          "type": "string",
+          "description": "The URL of the RSS feed or the base URL/API endpoint for discovery platforms.",
+          "format": "uri"
+        },
+        "sourceType": {
+          "type": "string",
+          "description": "The type of content source, categorizing its origin (e.g., 'Official RSS', 'User Custom RSS', 'Product Hunt', 'Hacker News', 'GitHub Trending')."
+        },
+        "description": {
+          "type": "string",
+          "description": "An optional description of the content source."
+        },
+        "iconUrl": {
+          "type": "string",
+          "description": "An optional URL to an icon or logo representing the source.",
+          "format": "uri"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User entity who added this custom RSS feed. This field is present only for 'User Custom RSS' source types. (Relationship: User 1:N Source)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the source was added to the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the source information was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["name", "url"]
+      "required": [
+        "id",
+        "name",
+        "url",
+        "sourceType",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ContentItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContentItem",
+      "type": "object",
+      "description": "Represents an individual article or discovery item aggregated from a Source, including its AI-generated summary.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ContentItem entity."
+        },
+        "sourceId": {
+          "type": "string",
+          "description": "Reference to the Source entity from which this content item was aggregated. (Relationship: Source 1:N ContentItem)"
+        },
+        "originalUrl": {
+          "type": "string",
+          "description": "The URL to the original article or item on its source website.",
+          "format": "uri"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the content item."
+        },
+        "summary": {
+          "type": "string",
+          "description": "A concise, AI-generated summary of the content item."
+        },
+        "publishedAt": {
+          "type": "string",
+          "description": "The original publication date and time of the content item, as reported by the source.",
+          "format": "date-time"
+        },
+        "fetchedAt": {
+          "type": "string",
+          "description": "The date and time when this content item was fetched and processed by the AI Synapse system.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when this content item record was created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when this content item record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "sourceId",
+        "originalUrl",
+        "title",
+        "summary",
+        "publishedAt",
+        "fetchedAt",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password", "google.com"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/articles/{articleId}": {
-      "schema": "Article",
-      "description": "公開されているニュース記事の蓄積場所"
-    },
-    "/users/{userId}/sources/{sourceId}": {
-      "schema": "Source",
-      "description": "各ユーザー専用のRSSソース設定"
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles and settings. Access is restricted to the authenticated user matching the 'userId' parameter.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, typically matching Firebase Authentication's UID."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sources/{sourceId}",
+        "definition": {
+          "entityName": "Source",
+          "schema": {
+            "$ref": "#/backend/entities/Source"
+          },
+          "description": "Stores definitions for all content sources. This collection includes global, system-managed sources (publicly readable, no 'userId' field) and user-added custom RSS feeds (owned by a specific user via the denormalized 'userId' field, writable only by the owner). Includes denormalized 'userId' for custom RSS sources for authorization independence.",
+          "params": [
+            {
+              "name": "sourceId",
+              "description": "The unique identifier for a specific content source."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/contentItems/{contentItemId}",
+        "definition": {
+          "entityName": "ContentItem",
+          "schema": {
+            "$ref": "#/backend/entities/ContentItem"
+          },
+          "description": "Stores all aggregated content items (articles, discovery items) from both global and custom sources. All documents in this collection are publicly readable by any user, enabling a unified content timeline. No specific authorization fields are needed as all content is public.",
+          "params": [
+            {
+              "name": "contentItemId",
+              "description": "The unique identifier for a specific aggregated content item."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure is designed with a strong emphasis on authorization independence, structural segregation, and predictable access patterns to ensure security, scalability, and debuggability. \n\n1.  **Authorization Independence (Denormalization):**\n    *   For `User` data, the `/users/{userId}` path intrinsically ties ownership to the document's location, making `request.auth.uid == userId` an atomic and independent check. There are no parent dependencies for user-specific data access.\n    *   For `Source` entities, we utilize denormalization by including a `userId` field directly within `Source` documents that represent user-created custom RSS feeds. Global, system-managed sources (e.g., 'Official RSS', 'Product Hunt') will *not* have a `userId` field. This allows security rules to evaluate ownership directly from the document (`resource.data.userId`) without requiring a `get()` call to a parent `User` document, thus maintaining atomic operations and simplifying rule logic. A user can read/write their own custom sources by checking `request.auth.uid == resource.data.userId`, while all users can read global sources by checking for the absence of the `userId` field.\n    *   `ContentItem` documents are designed to be publicly readable. This eliminates any need for authorization dependencies on their parent `Source` or `User` documents. Their access is independent, simplifying security rules to a simple 'allow read for all'.\n\n2.  **Structural Segregation (Homogeneous Security Posture):**\n    *   The `/users` collection is strictly for user profile data, with a clear `1:1` relationship to `request.auth.uid` for security.\n    *   The `/sources` collection hosts *all* source definitions. While it mixes global and user-owned sources, they are logically segregated by the presence or absence of the `userId` field. This enables a unified read path for clients while maintaining distinct write access control through the rules based on that field. This is a deliberate choice to allow a single entry point for querying sources, making it easier to display both types in the UI, and the security rules differentiate access based on the internal data structure.\n    *   The `/contentItems` collection is exclusively for aggregated articles and discovery items. All documents in this collection share the same security posture: public readability. This keeps security rules for content items extremely simple and avoids mixing data with different access requirements.\n\n3.  **QAPs (Rules are not Filters):**\n    *   **`/users/{userId}`:** Access is path-based, `request.auth.uid == userId`. List operations on `/users` are typically not performed, but individual user documents are directly accessible if authenticated and authorized.\n    *   **`/sources/{sourceId}`:**\n        *   To list global sources: A query `db.collection('sources').where('userId', '==', null)` can be executed. Rules will allow `list` for all and `read` for documents without `userId`.\n        *   To list a user's custom sources: A query `db.collection('sources').where('userId', '==', request.auth.uid)` can be executed. Rules will allow `list` for authenticated users and `read` for documents where `resource.data.userId == request.auth.uid`.\n        *   The security rules can be crafted to explicitly allow `list` operations while ensuring that only authorized documents are returned or accessible via specific `where` clauses, preventing rules from acting as filters post-query.\n    *   **`/contentItems/{contentItemId}`:** Since all content items are publicly readable, `db.collection('contentItems').orderBy('publishedAt', 'desc')` is a straightforward and efficient query. Security rules can simply allow global `read` and `list` for this collection, fully adhering to QAPs.\n\nThis structure directly addresses the need for efficient queries for the dashboard timeline (all `ContentItem`s), robust user management for custom RSS feeds (`/users/{userId}/sources/{sourceId}` implicitly, or rather `sources` documents with `userId`), and clear separation of global vs. user-owned data for simplified security rule development."
   }
 }
