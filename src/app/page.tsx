@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database, WifiOff, CheckCircle2, Calendar } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Search, RefreshCw, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, Info, Database, WifiOff, CheckCircle2, Calendar } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -14,13 +14,12 @@ import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit, orderBy } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
@@ -143,7 +142,10 @@ export default function Home() {
 
     try {
       const result = await syncRss({ sources: allSources });
-      toast({ title: result.addedCount > 0 ? "同期完了" : "更新なし", description: `${result.addedCount}件の新しい記事を取得しました。` });
+      toast({ 
+        title: result.addedCount > 0 ? "同期完了" : "更新なし", 
+        description: `${result.addedCount}件の新しい記事を取得しました。` 
+      });
     } catch (error: any) {
       toast({ variant: "destructive", title: "同期エラー", description: error.message });
     } finally {
@@ -232,6 +234,7 @@ export default function Home() {
                           alt={article.title}
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
+                          priority
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
@@ -241,7 +244,7 @@ export default function Home() {
                             </Badge>
                             <span className="text-xs font-bold text-white/70 flex items-center gap-1">
                               <Calendar className="w-3 h-3" />
-                              {format(new Date(article.publishedAt), 'MM月dd日 HH:mm')}
+                              {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
                             </span>
                           </div>
                           <h1 className="font-headline text-2xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg">

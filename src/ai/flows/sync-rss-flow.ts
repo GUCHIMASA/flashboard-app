@@ -15,7 +15,7 @@ const parser = new Parser({
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -28,19 +28,33 @@ const SyncRssInputSchema = z.object({
 
 const summarizePrompt = ai.definePrompt({
   name: 'syncSummarizePrompt',
-  input: { schema: z.object({ title: z.string(), content: z.string() }) },
-  output: { schema: z.object({ summary: z.string(), translatedTitle: z.string() }) },
-  prompt: `あなたはニュース記事を日本語に翻訳し、簡潔に要約するAIです。
+  input: { 
+    schema: z.object({ 
+      title: z.string(), 
+      content: z.string() 
+    }) 
+  },
+  output: { 
+    schema: z.object({ 
+      summary: z.string().describe('3つの短い箇条書き（・）形式の日本語要約'), 
+      translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳された記事タイトル') 
+    }) 
+  },
+  prompt: `あなたはニュース記事を日本語に翻訳し、簡潔に要約するプロの編集者です。
 以下の記事情報を処理してください：
 
-1. translatedTitle: 元の英語タイトルを、日本の読者が興味を引くような自然な日本語に翻訳してください。
-2. summary: 記事の内容を以下のルールで要約してください。
-   - 必ず3つの短い箇条書き（・）のみ。
-   - 1文は15文字以内。
-   - 体言止め。
+1. translatedTitle: 
+   - 元の英語タイトルを、日本の読者が一瞬で理解できる自然で魅力的な日本語に翻訳してください。
+   - 専門用語は適切に日本語にするか、カタカナ表記にしてください。
 
-タイトル: {{title}}
-本文: {{content}}`,
+2. summary: 
+   - 記事の内容を以下のルールで要約してください。
+   - 必ず「3つの短い箇条書き（・）」のみで構成すること。
+   - 1文は15文字以内。
+   - 体言止め（「〜を開発」「〜を発表」など）を推奨。
+
+記事のタイトル: {{{title}}}
+記事の本文/概要: {{{content}}}`,
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -72,12 +86,12 @@ const syncRssFlow = ai.defineFlow(
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`Fetching RSS: ${source.name}`);
+        console.log(`[RSS Sync] Fetching: ${source.name} (${source.url})`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 最新3件を取得
-        const items = feed.items.slice(0, 3);
+        // 負荷軽減のため最新2件を取得
+        const items = feed.items.slice(0, 2);
 
         for (const item of items) {
           if (!item.link || !item.title) continue;
@@ -87,7 +101,7 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           if (existingSnapshot.empty) {
-            console.log(`Generating AI Insight: ${item.title}`);
+            console.log(`[AI Insight] Processing article: ${item.title}`);
             const content = item.contentSnippet || item.content || item.title || '';
             
             let summary = '';
@@ -96,18 +110,25 @@ const syncRssFlow = ai.defineFlow(
             try {
               const { output } = await summarizePrompt({
                 title: item.title,
-                content: content.substring(0, 800)
+                content: content.substring(0, 1000)
               });
-              summary = output?.summary || '';
-              translatedTitle = output?.translatedTitle || item.title;
+              
+              if (output) {
+                summary = output.summary;
+                translatedTitle = output.translatedTitle;
+              } else {
+                throw new Error('AI output was null');
+              }
             } catch (e: any) {
-              summary = '要約の生成に失敗しました。';
+              console.error(`[AI Error] Failed for "${item.title}":`, e.message);
+              summary = '・解析エラーが発生しました\n・内容を確認できません\n・手動確認を推奨します';
+              translatedTitle = `(翻訳失敗) ${item.title}`;
             }
 
             await addDoc(articlesRef, {
               title: translatedTitle,
               originalTitle: item.title,
-              content: content.substring(0, 1000),
+              content: content.substring(0, 1500),
               summary: summary,
               link: item.link, 
               sourceName: source.name,
@@ -121,6 +142,7 @@ const syncRssFlow = ai.defineFlow(
           }
         }
       } catch (e: any) {
+        console.error(`[RSS Error] Source "${source.name}" failed:`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }
