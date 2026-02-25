@@ -68,45 +68,45 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
   return (
     <Card 
       className={cn(
-        "flex flex-col w-full bg-background border-border/40 transition-all duration-200 rounded-lg overflow-hidden group",
+        "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group",
         isActive 
-          ? "ring-1 ring-primary/40 shadow-lg z-10 scale-[1.01]" 
-          : "opacity-70 hover:opacity-100 hover:border-border"
+          ? "ring-2 ring-primary/40 shadow-xl z-10 scale-[1.02] opacity-100" 
+          : "opacity-80 hover:opacity-100 hover:border-border/80"
       )}
     >
       <CardHeader className={cn(
-        "transition-all duration-200",
-        isActive ? "p-3 space-y-2" : "p-2 space-y-0.5"
+        "transition-all duration-300",
+        isActive ? "p-4 space-y-3" : "p-3 space-y-1"
       )}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <div className="w-3 h-3 rounded-sm overflow-hidden bg-muted flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-4 h-4 rounded-sm overflow-hidden bg-muted flex items-center justify-center shrink-0">
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-2.5 h-2.5 text-muted-foreground" />
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[9px] font-bold text-primary truncate">
+            <span className="text-xs font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
-          <span className="text-[8px] text-muted-foreground whitespace-nowrap">
+          <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
           </span>
         </div>
         
         <h3 className={cn(
-          "font-bold leading-tight transition-all",
-          isActive ? "text-sm text-primary" : "text-[11px] text-foreground line-clamp-1"
+          "font-black leading-tight transition-all duration-300",
+          isActive ? "text-lg text-primary" : "text-sm text-foreground line-clamp-1"
         )}>
           {article.title}
         </h3>
 
         {isActive && article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 pt-1">
+          <div className="flex flex-wrap gap-1.5 pt-1">
             {article.tags.map(tag => (
-              <Badge key={tag} variant="outline" className="text-[8px] py-0 px-1 h-4 border-muted text-muted-foreground">
+              <Badge key={tag} variant="outline" className="text-[10px] py-0 px-2 h-5 border-muted/50 text-muted-foreground bg-muted/20">
                 #{tag}
               </Badge>
             ))}
@@ -114,27 +114,27 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         )}
       </CardHeader>
       
-      {/* AI Insight エリア：アクティブ時のみ展開 */}
+      {/* AI Insight エリア */}
       <CardContent className={cn(
-        "px-3 transition-all duration-300",
-        isActive ? "pb-3 opacity-100" : "h-0 p-0 opacity-0 pointer-events-none"
+        "px-4 transition-all duration-300",
+        isActive ? "pb-4 opacity-100" : "h-0 p-0 opacity-0 pointer-events-none"
       )}>
         <div className={cn(
           "grid transition-all duration-300 ease-in-out",
           isActive ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}>
-          <div className="overflow-hidden bg-muted/40 rounded border border-border/30">
-            <div className="p-2">
-              <div className="flex items-center gap-1.5 mb-1 text-primary">
-                <Sparkles className="w-2.5 h-2.5" />
-                <span className="text-[8px] font-black uppercase tracking-wider">Quick Insight</span>
+          <div className="overflow-hidden bg-primary/5 rounded-xl border border-primary/10">
+            <div className="p-3">
+              <div className="flex items-center gap-2 mb-2 text-primary">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-[11px] font-black uppercase tracking-widest">Quick Insight</span>
               </div>
               {article.summary ? (
-                <p className="text-[11px] text-foreground/90 leading-relaxed">
+                <p className="text-sm text-foreground/90 leading-relaxed font-medium">
                   {article.summary}
                 </p>
               ) : (
-                <p className="text-[9px] text-muted-foreground italic">要約を生成中...</p>
+                <p className="text-xs text-muted-foreground italic">要約を生成中...</p>
               )}
             </div>
           </div>
@@ -142,18 +142,18 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
       </CardContent>
 
       {isActive && (
-        <CardFooter className="p-3 pt-0 flex items-center justify-between mt-auto border-t border-border/10">
-          <div className="flex items-center gap-1 pt-2">
-            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={handleBookmark} disabled={isBookmarked}>
-              {isBookmarked ? <BookmarkCheck className="h-3 w-3 text-primary" /> : <Bookmark className="h-3 w-3" />}
+        <CardFooter className="p-4 pt-0 flex items-center justify-between mt-auto border-t border-border/10">
+          <div className="flex items-center gap-2 pt-3">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
+              {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={(e) => e.stopPropagation()}>
-              <Share2 className="h-3 w-3" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={(e) => e.stopPropagation()}>
+              <Share2 className="h-5 w-5" />
             </Button>
           </div>
-          <Button asChild variant="link" size="sm" className="h-auto p-0 text-[9px] font-bold pt-2" onClick={(e) => e.stopPropagation()}>
-            <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-              記事を読む <ExternalLink className="h-2 w-2" />
+          <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-black pt-3 text-primary hover:text-primary/80" onClick={(e) => e.stopPropagation()}>
+            <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+              記事をフルで読む <ExternalLink className="h-3 w-3" />
             </a>
           </Button>
         </CardFooter>
