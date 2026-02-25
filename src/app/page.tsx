@@ -1,7 +1,8 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
+import { Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -20,8 +21,15 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 import Header from '@/components/header';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
+
+const AVAILABLE_TAGS = [
+  "新モデル", "ツール", "研究・論文", "ビジネス", "規制・政策", "セキュリティ",
+  "OpenAI", "Anthropic", "Google", "Meta", "Microsoft", "その他企業",
+  "新リリース", "資金調達", "提携", "障害"
+];
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
@@ -32,6 +40,7 @@ export default function Home() {
   
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
@@ -79,7 +88,8 @@ export default function Home() {
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     category: 'Bookmarks', 
     link: b.link || b.url || '#',
-    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
+    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
+    tags: b.tags || []
   }));
 
   const normalizedArticles = useMemo(() => {
@@ -98,7 +108,8 @@ export default function Home() {
         category: a.category || 'Reliable',
         sourceName: a.sourceName || '不明',
         publishedAt: dateStr,
-        imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
+        imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`,
+        tags: a.tags || []
       } as Article;
     });
   }, [firestoreArticles]);
@@ -119,11 +130,12 @@ export default function Home() {
         if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
       }
       if (selectedSourceName && a.sourceName !== selectedSourceName) return false;
+      if (selectedTag && !a.tags?.includes(selectedTag)) return false;
       const searchTarget = `${a.title} ${a.content} ${a.sourceName}`.toLowerCase();
       if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [sortedArticles, activeCategory, selectedSourceName, searchQuery]);
+  }, [sortedArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
   const heroArticles = useMemo(() => {
     return sortedArticles.slice(0, 5);
@@ -132,7 +144,7 @@ export default function Home() {
   const handleRefresh = async () => {
     if (isRefreshing || !isAdmin) return;
     setIsRefreshing(true);
-    toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約中..." });
+    toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約・タグ付け中..." });
 
     try {
       const result = await syncRss({ 
@@ -178,7 +190,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0">
         <Header />
         <div className="flex-1 p-4 md:p-10 space-y-10 max-w-[1800px] mx-auto w-full">
-          {activeCategory === 'All' && !selectedSourceName && heroArticles.length > 0 && (
+          {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
             <section className="relative">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
@@ -219,8 +231,8 @@ export default function Home() {
           )}
 
           <section>
-            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border">
+            <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border shrink-0">
                 <TabsList className="bg-transparent h-10">
                   <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
                   <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary">信頼ソース</TabsTrigger>
@@ -228,21 +240,50 @@ export default function Home() {
                   <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex items-center gap-4">
-                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50">
+              
+              <div className="flex items-center gap-3 overflow-hidden w-full md:w-auto">
+                <div className="flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50 text-[10px] font-black text-muted-foreground">
                   <Database className="w-3 h-3 text-primary" />
-                  表示中: {filteredArticles.length} / 蓄積: {normalizedArticles.length}
+                  {filteredArticles.length} / {normalizedArticles.length}
                 </div>
-                {firebaseConfig.projectId ? (
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase">
-                    <CheckCircle2 className="w-3 h-3" /> オンライン
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase">
-                    <WifiOff className="w-3 h-3" /> 設定エラー
-                  </div>
+                {isAdmin && (
+                  <Button variant="outline" size="sm" className="rounded-full h-9 px-4 font-bold border-primary/30 hover:bg-primary/10" onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? "AI同期中..." : "AI同期"}
+                  </Button>
                 )}
               </div>
+            </div>
+
+            {/* タグ絞り込みバー */}
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
+                <TagIcon className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-widest">タグ絞り込み:</span>
+              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-2 pb-2">
+                  {selectedTag && (
+                    <Badge 
+                      variant="default" 
+                      className="cursor-pointer px-4 py-1.5 rounded-full bg-primary flex items-center gap-2"
+                      onClick={() => setSelectedTag(null)}
+                    >
+                      #{selectedTag} <X className="w-3 h-3" />
+                    </Badge>
+                  )}
+                  {AVAILABLE_TAGS.filter(t => t !== selectedTag).map(tag => (
+                    <Badge 
+                      key={tag} 
+                      variant="outline" 
+                      className="cursor-pointer px-4 py-1.5 rounded-full border-white/10 hover:bg-white/5 transition-colors"
+                      onClick={() => setSelectedTag(tag)}
+                    >
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" className="h-1.5" />
+              </ScrollArea>
             </div>
 
             {articlesLoading && normalizedArticles.length === 0 ? (
@@ -265,16 +306,14 @@ export default function Home() {
                   <Info className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-black mb-2 uppercase">
-                  {normalizedArticles.length === 0 ? "データベース空状態" : "該当記事なし"}
+                  該当記事なし
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
-                  {normalizedArticles.length === 0 
-                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
-                    : `データベースには ${normalizedArticles.length} 件の記事がありますが、現在の条件には一致しません。`}
+                  {selectedTag ? `タグ「#${selectedTag}」に一致する記事はありません。` : "現在の条件に一致する記事は見つかりませんでした。"}
                 </p>
-                {isAdmin && (
-                  <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "AI同期中..." : "AI同期を開始する"}
+                {(selectedTag || searchQuery || activeCategory !== 'All') && (
+                  <Button variant="outline" className="rounded-full px-8" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
+                    すべての条件をクリア
                   </Button>
                 )}
               </div>

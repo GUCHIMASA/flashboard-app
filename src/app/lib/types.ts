@@ -20,4 +20,5 @@ export interface Article {
   category: string; // カテゴリー判定を柔軟にするためstringに変更
   link: string;
   imageUrl?: string;
+  tags?: string[];
 }

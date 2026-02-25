@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -39,7 +40,11 @@
         "sourceName": { "type": "string" },
         "publishedAt": { "type": "string", "format": "date-time" },
         "imageUrl": { "type": "string", "format": "uri" },
-        "category": { "type": "string" }
+        "category": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
       },
       "required": ["id", "title", "link", "publishedAt"]
     },
@@ -52,6 +57,10 @@
         "articleId": { "type": "string" },
         "title": { "type": "string" },
         "url": { "type": "string" },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "bookmarkedAt": { "type": "string", "format": "date-time" }
       }
     }

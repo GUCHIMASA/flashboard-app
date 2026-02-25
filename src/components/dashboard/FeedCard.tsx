@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, ArrowUpRight, Sparkles, ExternalLink } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink, Tag } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,7 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ article }: FeedCardProps) {
-  const { user } = useUser();
+  const { user } = user ? useUser() : { user: null };
   const db = useFirestore();
   const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -41,6 +42,7 @@ export function FeedCard({ article }: FeedCardProps) {
       url: article.link,
       sourceName: article.sourceName,
       imageUrl: article.imageUrl || '',
+      tags: article.tags || [],
       bookmarkedAt: serverTimestamp(),
     });
     setIsBookmarked(true);
@@ -58,7 +60,6 @@ export function FeedCard({ article }: FeedCardProps) {
 
   return (
     <Card className="group relative flex flex-col h-full border-white/5 bg-card/40 backdrop-blur-sm hover:bg-card/60 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden">
-      {/* Decorative Gradient Background */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
       
       <CardHeader className="p-3 md:p-5 pb-2">
@@ -78,11 +79,21 @@ export function FeedCard({ article }: FeedCardProps) {
             {article.title}
           </h3>
         </div>
+
+        {/* タグ表示 */}
+        {article.tags && article.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {article.tags.map(tag => (
+              <Badge key={tag} variant="outline" className="text-[8px] py-0 px-1.5 border-white/10 text-muted-foreground/80 font-normal">
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="px-3 md:px-5 py-2 flex-grow">
         <div className="relative bg-white/5 border border-white/5 rounded-2xl p-3 md:p-5 overflow-hidden group/summary">
-          {/* Neon Glow Effect */}
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
           
           <div className="flex items-center gap-2 mb-2 text-primary">
