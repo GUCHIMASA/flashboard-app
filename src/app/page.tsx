@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
+import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -22,6 +22,7 @@ import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
+// 管理者のメールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 const AVAILABLE_TAGS = [
@@ -45,6 +46,7 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // 管理者判定
   const isAdmin = useMemo(() => {
     return user && user.email === ADMIN_EMAIL;
   }, [user]);
@@ -255,7 +257,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* タグ絞り込みバー */}
             <div className="mb-8 flex items-center gap-3 w-full">
               <div className="flex items-center gap-2 text-muted-foreground shrink-0">
                 <TagIcon className="w-4 h-4" />

@@ -104,7 +104,6 @@ const syncRssFlow = ai.defineFlow(
 
           const existingData = existingSnapshot.docs[0]?.data();
           const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
-          // タグがない場合も処理対象に含める
           const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish || !existingData?.tags;
 
           if (needsProcessing) {
