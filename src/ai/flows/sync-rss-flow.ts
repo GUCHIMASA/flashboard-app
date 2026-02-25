@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、Geminiで要約を生成してFirestoreに保存するフロー。
@@ -10,13 +9,13 @@ import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 
-// RSSパサーの初期化
+// RSSパサーの初期化（タイムアウトとユーザーエージェントを厳格に設定）
 const parser = new Parser({
   headers: {
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   },
-  timeout: 10000,
+  timeout: 5000, // 5秒でタイムアウト
 });
 
 const SyncRssInputSchema = z.object({
@@ -42,7 +41,12 @@ const summarizePrompt = ai.definePrompt({
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
-  return syncRssFlow(input);
+  try {
+    return await syncRssFlow(input);
+  } catch (error: any) {
+    console.error('Flow Execution Error:', error);
+    throw new Error(`同期フローの実行中に致命的なエラーが発生しました: ${error.message}`);
+  }
 }
 
 const syncRssFlow = ai.defineFlow(
@@ -65,17 +69,16 @@ const syncRssFlow = ai.defineFlow(
 
     for (const source of input.sources) {
       if (!source.url || !source.url.startsWith('http')) {
-        console.log(`Skipping invalid URL for source: ${source.name}`);
         continue;
       }
       
       try {
-        console.log(`Fetching: ${source.name} (${source.url})`);
+        console.log(`Attempting to fetch: ${source.name}`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // タイムアウトを避けるため、最新の2件に限定
-        const items = feed.items.slice(0, 2);
+        // タイムアウトを避けるため、テスト中は最新1件のみ取得
+        const items = feed.items.slice(0, 1);
 
         for (const item of items) {
           if (!item.link || !item.title) continue;
@@ -86,14 +89,14 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           if (existingSnapshot.empty) {
-            console.log(`Processing new article: ${item.title}`);
+            console.log(`Summarizing: ${item.title}`);
             const content = item.contentSnippet || item.content || item.title || '';
             
             let summary = '';
             try {
               const { output } = await summarizePrompt({
                 title: item.title,
-                content: content.substring(0, 800)
+                content: content.substring(0, 500) // 文字数を減らして高速化
               });
               summary = output?.summary || '';
             } catch (e: any) {
@@ -103,7 +106,7 @@ const syncRssFlow = ai.defineFlow(
 
             await addDoc(articlesRef, {
               title: item.title,
-              content: content.substring(0, 2000), // 内容を制限
+              content: content.substring(0, 1000),
               summary: summary,
               url: item.link,
               sourceName: source.name,
@@ -114,13 +117,11 @@ const syncRssFlow = ai.defineFlow(
             });
             
             addedCount++;
-          } else {
-            console.log(`Article already exists: ${item.title}`);
           }
         }
       } catch (e: any) {
-        const errorMsg = `Source ${source.name} error: ${e.message}`;
-        console.error(errorMsg);
+        const errorMsg = `${source.name}の取得に失敗: ${e.message}`;
+        console.warn(errorMsg);
         errors.push(errorMsg);
       }
     }

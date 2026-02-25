@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -68,7 +67,6 @@ export default function Home() {
 
   const articlesQuery = useMemo(() => {
     if (!db) return null;
-    // インデックス作成前でも動作するよう、最初はシンプルなクエリにする
     return query(collection(db, 'articles'), limit(50));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading, error: articlesError } = useCollection(articlesQuery);
@@ -94,7 +92,6 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : (firestoreArticles as Article[]);
 
-  // クライアントサイドでソート
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => 
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -153,21 +150,29 @@ export default function Home() {
     
     toast({
       title: "同期を開始しました",
-      description: "AIが最新情報を収集・解析しています...",
+      description: "AIが最新情報を解析しています（約20秒）...",
     });
 
     try {
       const result = await syncRss({ sources: allSources });
-      toast({
-        title: "同期完了",
-        description: `${result.addedCount}件の新しい記事を取得しました。`,
-      });
+      if (result.errors.length > 0 && result.addedCount === 0) {
+        toast({
+          variant: "destructive",
+          title: "同期エラーが発生しました",
+          description: result.errors[0],
+        });
+      } else {
+        toast({
+          title: "同期完了",
+          description: `${result.addedCount}件の新しい記事を取得しました。`,
+        });
+      }
     } catch (error: any) {
       console.error('Refresh error:', error);
       toast({
         variant: "destructive",
-        title: "同期エラー",
-        description: "APIキーの設定を確認してください。",
+        title: "システムエラー",
+        description: error.message || "予期せぬエラーが発生しました。",
       });
     } finally {
       setIsRefreshing(false);
@@ -259,7 +264,7 @@ export default function Home() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>システムエラー</AlertTitle>
               <AlertDescription>
-                データの読み込みに失敗しました。{articlesError.message.includes('index') && "Firestoreのインデックス作成が必要です。"}
+                データの読み込みに失敗しました。{articlesError.message}
               </AlertDescription>
             </Alert>
           )}
