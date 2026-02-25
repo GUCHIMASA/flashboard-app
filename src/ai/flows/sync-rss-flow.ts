@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview RSSフィードを同期し、Geminiで翻訳・要約を生成してFirestoreに保存するフロー。
+ * @fileOverview RSSフィードを同期し、統一された要約フローを使用してFirestoreに保存するフロー。
  */
 
 import { ai } from '@/ai/genkit';
@@ -8,6 +8,7 @@ import { z } from 'genkit';
 import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
 
 const parser = new Parser({
   headers: {
@@ -23,44 +24,6 @@ const SyncRssInputSchema = z.object({
     url: z.string(),
     category: z.string()
   }))
-});
-
-const SummarizeOutputSchema = z.object({
-  summary: z.string().describe('3つの短い箇条書き（・）形式の日本語要約'), 
-  translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳された記事タイトル') 
-});
-
-const articleTransformPrompt = ai.definePrompt({
-  name: 'articleTransformPrompt',
-  input: {
-    schema: z.object({
-      originalTitle: z.string(),
-      content: z.string()
-    })
-  },
-  output: { schema: SummarizeOutputSchema },
-  config: {
-    safetySettings: [
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
-      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
-    ]
-  },
-  prompt: `
-あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
-
-指示：
-1. [translatedTitle]: 元の英語タイトルを、日本のテックメディア（例: TechCrunch Japan）のような、目を引く自然な日本語に翻訳・リライトしてください。
-2. [summary]: 記事の最も重要なポイントを3つ抽出し、「・」から始まる箇条書きの日本語で、合計50文字程度で簡潔にまとめてください。
-
-入力データ：
-元のタイトル: {{{originalTitle}}}
-内容: {{{content}}}
-
-出力は必ず指定されたスキーマに従い、すべてのテキストを日本語にしてください。
-`
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -109,33 +72,31 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           const contentSnippet = item.contentSnippet || item.content || item.title || '';
-          
           const existingData = existingSnapshot.docs[0]?.data();
-          const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
           
-          const needsProcessing = existingSnapshot.empty || 
-            !existingData?.summary || 
-            isEnglish;
+          // 英語タイトルのまま、または要約がない場合は処理対象
+          const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
+          const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish;
 
           if (needsProcessing) {
             console.log(`[AI処理開始] 記事: ${item.title}`);
             console.log(`[AI Key Check] Before prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
             try {
-              const { output } = await articleTransformPrompt({
-                originalTitle: item.title,
+              // 統一された要約・翻訳フローを呼び出し
+              const result = await summarizeAggregatedArticleContent({
+                title: item.title,
                 content: contentSnippet.substring(0, 1500)
               });
               
               console.log(`[AI Key Check] After prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
-              if (output) {
-                // AI処理が成功した場合のみFirestoreに保存する
+              if (result && result.translatedTitle && result.summary) {
                 const articleData = {
-                  title: output.translatedTitle,
+                  title: result.translatedTitle,
                   originalTitle: item.title,
                   content: contentSnippet.substring(0, 2000),
-                  summary: output.summary,
+                  summary: result.summary,
                   link: link, 
                   sourceName: source.name,
                   publishedAt: item.isoDate || new Date().toISOString(),
@@ -152,17 +113,17 @@ const syncRssFlow = ai.defineFlow(
                   await updateDoc(articleDoc, articleData);
                   updatedCount++;
                 }
-                console.log(`[AI処理成功] 保存完了: ${output.translatedTitle}`);
+                console.log(`[AI処理成功] 保存完了: ${result.translatedTitle}`);
               } else {
-                console.error(`[AI Error] ${item.title}: AIの出力が空のため保存をスキップします。`);
+                console.error(`[AI Error] ${item.title}: 出力が不完全なため保存をスキップします。`);
               }
             } catch (e: any) {
-              console.error(`[AI Error] ${item.title}: AI処理に失敗しました。この記事の保存をスキップします。`, e.message);
+              console.error(`[AI Error] ${item.title}: AI処理に失敗したため、このニュースの保存をスキップします。`, e.message);
               // 保存をスキップすることで、次回の同期時に再度AI処理が試行される
             }
           }
           
-          // 記事を1件処理するたびに2秒待機する (レート制限対策)
+          // レート制限対策として2秒待機
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (e: any) {

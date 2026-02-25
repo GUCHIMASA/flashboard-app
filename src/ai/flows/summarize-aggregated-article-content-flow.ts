@@ -1,21 +1,22 @@
 'use server';
 /**
- * @fileOverview 記事の内容を極めて簡潔に要約するGenkitフロー。
+ * @fileOverview 記事のタイトル翻訳と要約を統合的に行うAIフロー。
  *
- * - summarizeAggregatedArticleContent - 日本の多忙な読者向けに、3つの短い言葉で要約を生成します。
+ * - summarizeAggregatedArticleContent - 英語のタイトルを日本語に翻訳し、内容を3つの要点に要約します。
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const SummarizeAggregatedArticleContentInputSchema = z.object({
-  title: z.string().describe('記事のタイトル'),
+  title: z.string().describe('元の記事タイトル'),
   content: z.string().describe('記事の本文'),
 });
 export type SummarizeAggregatedArticleContentInput = z.infer<typeof SummarizeAggregatedArticleContentInputSchema>;
 
 const SummarizeAggregatedArticleContentOutputSchema = z.object({
-  summary: z.string().describe('記事の極めて簡潔な要約（3つの要点）'),
+  translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳されたタイトル'),
+  summary: z.string().describe('記事の要点を3つ（・）で簡潔にまとめた日本語要約'),
 });
 export type SummarizeAggregatedArticleContentOutput = z.infer<typeof SummarizeAggregatedArticleContentOutputSchema>;
 
@@ -29,15 +30,20 @@ const summarizePrompt = ai.definePrompt({
   name: 'summarizeArticlePrompt',
   input: { schema: SummarizeAggregatedArticleContentInputSchema },
   output: { schema: SummarizeAggregatedArticleContentOutputSchema },
-  prompt: `あなたはニュース記事を「一瞬で理解できる」ように要約するAIです。
+  config: {
+    safetySettings: [
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
+    ]
+  },
+  prompt: `あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
 
-以下のガイドラインに厳格に従って、記事を日本語で要約してください：
-
-ガイドライン:
-1. 必ず日本語で、3つの短い箇条書き（・）のみで出力してください。
-2. 1文は「最大15文字以内」にしてください。体言止めを推奨します。
-3. 余計な説明は一切省き、最も重要なポイントだけを抜き出してください。
-4. 全体で50文字程度に収めてください。
+指示：
+1. [translatedTitle]: 元のタイトルを、日本のテックメディア（例: TechCrunch Japan）のような、目を引く自然な日本語に翻訳・リライトしてください。
+2. [summary]: 記事の最も重要なポイントを3つ抽出し、「・」から始まる箇条書きの日本語で、合計50文字程度で簡潔にまとめてください。1文は最大15文字以内とし、体言止めを推奨します。
 
 記事タイトル: {{{title}}}
 記事本文: {{{content}}}`,
@@ -51,6 +57,7 @@ const summarizeAggregatedArticleContentFlow = ai.defineFlow(
   },
   async (input) => {
     const { output } = await summarizePrompt(input);
-    return output!;
+    if (!output) throw new Error('AIが回答を拒否または生成に失敗しました。');
+    return output;
   }
 );
