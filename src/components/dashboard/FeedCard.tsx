@@ -88,7 +88,7 @@ export function FeedCard({ article }: FeedCardProps) {
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-3 h-3 text-muted-foreground/50" />
+                <Globe className="w-3.5 h-3.5 text-muted-foreground/50" />
               )}
             </div>
             <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter truncate">
