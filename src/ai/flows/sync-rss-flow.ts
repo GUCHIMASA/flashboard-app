@@ -8,7 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 const parser = new Parser({
   headers: {
@@ -64,23 +64,6 @@ const articleTransformPrompt = ai.definePrompt({
 出力は必ず指定されたスキーマに従い、すべてのテキストを日本語にしてください。
 `
 });
-
-/**
- * 全ての記事データを削除してクリーンな状態にする
- */
-export async function clearArticles() {
-  try {
-    const { firestore } = initializeFirebase();
-    const articlesRef = collection(firestore, 'articles');
-    const snapshot = await getDocs(articlesRef);
-    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(firestore, 'articles', d.id)));
-    await Promise.all(deletePromises);
-    return { success: true, count: snapshot.size };
-  } catch (error: any) {
-    console.error('Clear Articles Error:', error);
-    throw new Error(`リセットに失敗しました: ${error.message}`);
-  }
-}
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
   try {
