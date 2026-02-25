@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -6,6 +7,7 @@ import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AdCard } from '@/components/dashboard/AdCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
+import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { INITIAL_SOURCES } from './lib/mock-data';
@@ -199,8 +201,8 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0">
         <header className="sticky top-0 z-40 w-full glass-panel px-3 md:px-6 h-14 md:h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 md:gap-5">
-            <SidebarTrigger className="hover:bg-white/10 transition-colors" />
-            <div className="h-8 w-px bg-white/10 hidden xs:block" />
+            <SidebarTrigger className="hover:bg-primary/10 transition-colors" />
+            <div className="h-8 w-px bg-border hidden xs:block" />
             <div className="flex flex-col">
               <h2 className="font-headline text-sm md:text-xl font-black text-foreground truncate uppercase tracking-tight">
                 {headerTitle}
@@ -218,16 +220,17 @@ export default function Home() {
             <div className="relative w-full max-w-[120px] xs:max-w-xs group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
-                className="pl-10 bg-white/5 border-white/5 focus-visible:ring-1 focus-visible:ring-primary h-9 md:h-11 rounded-full transition-all hover:bg-white/10 text-xs md:text-sm" 
+                className="pl-10 bg-secondary/50 border-transparent focus-visible:ring-1 focus-visible:ring-primary h-9 md:h-11 rounded-full transition-all hover:bg-secondary text-xs md:text-sm" 
                 placeholder="インサイトを検索..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+            <ThemeToggle />
             <Button 
               variant="outline" 
               size="icon" 
-              className="h-9 w-9 md:h-11 md:w-11 border-white/5 bg-white/5 rounded-full hover:bg-primary/20 hover:text-primary transition-all relative shrink-0"
+              className="h-9 w-9 md:h-11 md:w-11 border-white/10 bg-white/5 rounded-full hover:bg-primary/20 hover:text-primary transition-all relative shrink-0"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -266,18 +269,18 @@ export default function Home() {
                               <Zap className="w-3 h-3" />
                               FEATURED INSIGHT
                             </div>
-                            <div className="text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
+                            <div className="text-foreground/60 dark:text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-widest">
                               {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
                             </div>
                           </div>
-                          <h1 className="font-headline text-xl xs:text-3xl md:text-6xl font-black mb-3 md:mb-6 tracking-tighter leading-[1] text-white animate-in slide-in-from-bottom duration-700 delay-100">
+                          <h1 className="font-headline text-xl xs:text-3xl md:text-6xl font-black mb-3 md:mb-6 tracking-tighter leading-[1] text-foreground dark:text-white animate-in slide-in-from-bottom duration-700 delay-100">
                             {article.title}
                           </h1>
-                          <p className="text-white/70 text-xs md:text-xl mb-6 md:mb-10 line-clamp-2 max-w-3xl font-medium hidden xs:block animate-in slide-in-from-bottom duration-700 delay-200">
+                          <p className="text-foreground/70 dark:text-white/70 text-xs md:text-xl mb-6 md:mb-10 line-clamp-2 max-w-3xl font-medium hidden xs:block animate-in slide-in-from-bottom duration-700 delay-200">
                             {article.summary || article.content}
                           </p>
                           <div className="flex items-center gap-4 animate-in slide-in-from-bottom duration-700 delay-300">
-                            <Button asChild size="lg" className="bg-white text-black hover:bg-primary hover:text-white transition-all font-black px-8 rounded-full h-10 md:h-14">
+                            <Button asChild size="lg" className="bg-primary text-white hover:bg-primary/90 transition-all font-black px-8 rounded-full h-10 md:h-14">
                               <a href={article.link} target="_blank" rel="noopener noreferrer">
                                 EXPLORE <ArrowRight className="w-5 h-5 ml-2" />
                               </a>
@@ -295,7 +298,7 @@ export default function Home() {
                       key={index}
                       className={cn(
                         "h-1.5 rounded-full transition-all duration-500",
-                        current === index ? "bg-primary w-12" : "bg-white/20 w-4 hover:bg-white/40"
+                        current === index ? "bg-primary w-12" : "bg-foreground/20 dark:bg-white/20 w-4 hover:bg-foreground/40 dark:hover:bg-white/40"
                       )}
                       onClick={() => api?.scrollTo(index)}
                     />
@@ -310,7 +313,7 @@ export default function Home() {
               <div className="space-y-2">
                 <h3 className="text-2xl md:text-4xl font-black uppercase tracking-tighter">Insights Stream</h3>
                 <Tabs value={activeCategory} onValueChange={handleCategoryChange} className="w-full">
-                  <TabsList className="bg-white/5 p-1 rounded-full border border-white/5 h-12">
+                  <TabsList className="bg-secondary/50 p-1 rounded-full border border-border h-12">
                     <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">All</TabsTrigger>
                     <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">Reliable</TabsTrigger>
                     <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-white font-bold text-xs">Discovery</TabsTrigger>
@@ -342,7 +345,7 @@ export default function Home() {
                 ))
               ) : articlesLoading || isRefreshing ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-white/5 animate-pulse" />
+                  <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-secondary/50 animate-pulse" />
                 ))
               ) : (
                 <div className="col-span-full py-32 text-center glass-panel rounded-[3rem]">

@@ -1,9 +1,42 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --background: 210 20% 98%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 270 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 15% 90%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 10% 95%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 210 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 15% 90%;
+    --input: 220 15% 90%;
+    --ring: 270 90% 60%;
+    --radius: 1.25rem;
+    
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5% 26%;
+    --sidebar-primary: 240 6% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 5% 96%;
+    --sidebar-accent-foreground: 240 6% 10%;
+    --sidebar-border: 240 6% 90%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark {
     --background: 240 25% 4%;
     --foreground: 0 0% 98%;
     --card: 240 25% 7%;
@@ -23,7 +56,15 @@
     --border: 240 20% 15%;
     --input: 240 20% 15%;
     --ring: 270 90% 65%;
-    --radius: 1rem;
+    
+    --sidebar-background: 240 25% 5%;
+    --sidebar-foreground: 240 5% 90%;
+    --sidebar-primary: 270 90% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 20% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 240 20% 15%;
+    --sidebar-ring: 270 90% 65%;
   }
 }
 
@@ -34,8 +75,8 @@
   body {
     @apply bg-background text-foreground selection:bg-primary/30;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(270, 90%, 65%, 0.05) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(210, 100%, 50%, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(var(--primary), 0.05) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(var(--accent), 0.05) 0px, transparent 50%);
     background-attachment: fixed;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -44,7 +85,7 @@
 }
 
 .glass-panel {
-  @apply bg-card/60 backdrop-blur-xl border border-white/5;
+  @apply bg-card/70 backdrop-blur-xl border border-white/10 dark:border-white/5;
 }
 
 .neo-blur {
@@ -59,4 +100,8 @@
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+.dark .glass-panel {
+  @apply bg-card/60;
 }
