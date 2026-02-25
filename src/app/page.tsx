@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X, Zap } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 // 管理者のメールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
@@ -45,6 +46,23 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeCardId, setActiveCardId] = useState<string | null>(null);
+
+  // Intersection Observer for mobile stacking effect
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    observer.current = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+          const id = entry.target.getAttribute('data-article-id');
+          setActiveCardId(id);
+        }
+      });
+    }, { threshold: 0.5, rootMargin: '-20% 0px -20% 0px' });
+
+    return () => observer.current?.disconnect();
+  }, []);
 
   // 管理者判定
   const isAdmin = useMemo(() => {
@@ -295,30 +313,38 @@ export default function Home() {
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              /* 
-                 モバイル: 「スタッキング（重なり）スクロール」エフェクト 
-                 画面中央に来るカードが全表示され、その下のカードは重なって隠れるように制御
-              */
-              <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative">
-                {filteredArticles.map((article, index) => (
-                  <div 
-                    key={article.id} 
-                    className="sticky top-20 sm:relative sm:top-0 transition-all duration-300" 
-                    style={{ 
-                      // モバイルでカードを重ねるための負のマージン
-                      marginTop: index > 0 ? '-10rem' : '0',
-                      // インデックス順に z-index を上げることで、下のカードが上のカードの要約を隠すようにする
-                      zIndex: index,
-                      // スクロール時に完全に隠れないように、各カードにある程度の底マージンを持たせる
-                      marginBottom: '2rem'
-                    }}
-                  >
-                    <div className="bg-background rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)]">
-                      <FeedCard article={article} />
+              <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative snap-y snap-mandatory">
+                {filteredArticles.map((article, index) => {
+                  const isActive = activeCardId === article.id;
+                  
+                  return (
+                    <div 
+                      key={article.id}
+                      data-article-id={article.id}
+                      ref={el => {
+                        if (el) observer.current?.observe(el);
+                      }}
+                      className={cn(
+                        "sticky top-24 sm:relative sm:top-0 transition-all duration-500 ease-out snap-center",
+                        "min-h-[400px] md:min-h-0"
+                      )}
+                      style={{ 
+                        // 下のカードを上に引き寄せて重ねる。中央のカード（isActive）は余白を広げて読めるようにする。
+                        marginTop: !isActive && index > 0 ? '-14rem' : '0',
+                        zIndex: index,
+                        marginBottom: isActive ? '4rem' : '2rem',
+                        transform: !isActive && index > 0 ? 'translateY(0)' : 'translateY(0)'
+                      }}
+                    >
+                      <div className={cn(
+                        "bg-background rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-500",
+                        isActive ? "scale-100 opacity-100 ring-4 ring-primary/20" : "scale-[0.98] opacity-90"
+                      )}>
+                        <FeedCard article={article} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {/* 最後のカードが重なりで見えなくならないためのパディング */}
+                  );
+                })}
                 <div className="h-40 sm:hidden" />
               </div>
             ) : (
@@ -359,3 +385,4 @@ export default function Home() {
     </div>
   );
 }
+

@@ -70,7 +70,7 @@ export function FeedCard({ article }: FeedCardProps) {
   };
 
   return (
-    <Card className="group relative flex flex-col h-full border-white/5 bg-background dark:bg-card hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden">
+    <Card className="group relative flex flex-col h-full border-white/5 bg-background dark:bg-card hover:shadow-[0_20px_60px_rgba(0,0,0,0.4)] transition-all duration-500 overflow-hidden min-h-[420px]">
       <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
       
       <CardHeader className="p-4 md:p-5 pb-2">
@@ -100,7 +100,6 @@ export function FeedCard({ article }: FeedCardProps) {
           </h3>
         </div>
 
-        {/* タグ表示 */}
         {article.tags && article.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {article.tags.map(tag => (
@@ -113,7 +112,7 @@ export function FeedCard({ article }: FeedCardProps) {
       </CardHeader>
       
       <CardContent className="px-4 md:px-5 py-2 flex-grow">
-        <div className="relative bg-secondary/20 dark:bg-white/5 border border-white/5 rounded-2xl p-4 md:p-5 overflow-hidden group/summary min-h-[100px] md:min-h-0">
+        <div className="relative bg-secondary/20 dark:bg-white/5 border border-white/5 rounded-2xl p-4 md:p-5 overflow-hidden group/summary min-h-[120px]">
           <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
           
           <div className="flex items-center gap-2 mb-2 text-primary">
