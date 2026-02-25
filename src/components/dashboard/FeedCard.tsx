@@ -68,14 +68,14 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
   return (
     <Card 
       className={cn(
-        "flex flex-col w-full bg-background border-border/40 transition-all duration-500 rounded-lg overflow-hidden group",
+        "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group cursor-pointer",
         isActive 
           ? "ring-2 ring-primary/40 shadow-xl z-20 scale-[1.01] opacity-100" 
-          : "opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:border-border/80"
+          : "opacity-80 hover:opacity-100 hover:border-border/80"
       )}
     >
       <CardHeader className={cn(
-        "transition-all duration-500",
+        "transition-all duration-300",
         isActive ? "p-4 space-y-3" : "p-2 space-y-0.5"
       )}>
         <div className="flex items-center justify-between">
@@ -87,7 +87,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 <Globe className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[11px] font-black text-primary truncate uppercase tracking-tight">
+            <span className="text-[12px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
@@ -97,7 +97,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         </div>
         
         <h3 className={cn(
-          "font-black leading-tight transition-all duration-500",
+          "font-black leading-tight transition-all duration-300",
           isActive ? "text-lg text-primary" : "text-sm text-foreground line-clamp-1"
         )}>
           {article.title}
@@ -116,11 +116,11 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
       
       {/* AI Insight エリア */}
       <CardContent className={cn(
-        "px-4 transition-all duration-500",
+        "px-4 transition-all duration-300",
         isActive ? "pb-4 opacity-100" : "h-0 p-0 opacity-0 pointer-events-none"
       )}>
         <div className={cn(
-          "grid transition-all duration-500 ease-in-out",
+          "grid transition-all duration-300 ease-in-out",
           isActive ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}>
           <div className="overflow-hidden bg-primary/5 rounded-xl border border-primary/10">

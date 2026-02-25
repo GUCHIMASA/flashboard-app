@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
@@ -46,9 +46,8 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // アクティブな記事のIDを管理
+  // アクティブな記事のIDを管理 (タップで切り替え)
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
-  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const isAdmin = useMemo(() => {
     return user && user.email === ADMIN_EMAIL;
@@ -136,32 +135,6 @@ export default function Home() {
   const heroArticles = useMemo(() => {
     return normalizedArticles.slice(0, 5);
   }, [normalizedArticles]);
-
-  // スクロール検知で真ん中のカードをアクティブにする
-  useEffect(() => {
-    const observerOptions = {
-      root: null,
-      rootMargin: '-50% 0% -50% 0%', // 画面の中央線で判定
-      threshold: 0
-    };
-
-    const observerCallback = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const articleId = entry.target.getAttribute('data-article-id');
-          if (articleId) setActiveArticleId(articleId);
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
-    
-    Object.values(cardRefs.current).forEach(el => {
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [filteredArticles]);
 
   const handleRefresh = async () => {
     if (isRefreshing || !isAdmin) return;
@@ -309,17 +282,12 @@ export default function Home() {
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className={cn(
-                "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1",
-                "sm:snap-none snap-y snap-proximity" // モバイルのみスナップを有効化
-              )}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
                 {filteredArticles.map((article) => (
                   <div 
                     key={article.id} 
-                    ref={el => { cardRefs.current[article.id] = el }}
-                    data-article-id={article.id}
-                    onClick={() => setActiveArticleId(article.id)}
-                    className="snap-center transition-all duration-300"
+                    onClick={() => setActiveArticleId(activeArticleId === article.id ? null : article.id)}
+                    className="transition-all duration-300"
                   >
                     <FeedCard 
                       article={article} 
