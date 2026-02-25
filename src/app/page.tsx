@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
+import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database, Lock } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -25,6 +25,9 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 
+// 管理者のメールアドレス（ここをご自身のものに書き換えてください）
+const ADMIN_EMAIL = "admin@example.com";
+
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
@@ -38,6 +41,8 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -133,12 +138,15 @@ export default function Home() {
   }, [sortedArticles]);
 
   const handleRefresh = async () => {
-    if (isRefreshing) return;
+    if (isRefreshing || !isAdmin) return;
     setIsRefreshing(true);
     toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約中..." });
 
     try {
-      const result = await syncRss({ sources: allSources });
+      const result = await syncRss({ 
+        sources: allSources,
+        requesterEmail: user?.email || ''
+      });
       toast({ 
         title: result.addedCount > 0 || result.updatedCount > 0 ? "同期完了" : "更新なし", 
         description: `${result.addedCount + result.updatedCount}件の記事を処理しました。` 
@@ -164,7 +172,7 @@ export default function Home() {
     'All': 'すべて',
     'Reliable': '信頼ソース',
     'Discovery': '発見',
-    'Bookmarks': '保存済み'
+    'Bookmarks': '保管庫'
   };
 
   return (
@@ -206,15 +214,21 @@ export default function Home() {
               />
             </div>
             <ThemeToggle />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full h-10 w-10 border-white/10"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-            </Button>
+            {isAdmin ? (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full h-10 w-10 border-white/10"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+              </Button>
+            ) : (
+              <div className="w-10 h-10 flex items-center justify-center opacity-20" title="管理者のみ同期可能">
+                <Lock className="w-4 h-4" />
+              </div>
+            )}
           </div>
         </header>
 
@@ -314,9 +328,11 @@ export default function Home() {
                     ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
                     : `データベースには ${normalizedArticles.length} 件の記事がありますが、現在の条件には一致しません。`}
                 </p>
-                <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "AI同期中..." : "AI同期を開始する"}
-                </Button>
+                {isAdmin && (
+                  <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? "AI同期中..." : "AI同期を開始する"}
+                  </Button>
+                )}
               </div>
             )}
           </section>

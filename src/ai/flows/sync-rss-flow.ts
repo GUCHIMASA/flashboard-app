@@ -2,7 +2,7 @@
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、統一された要約フローを使用してFirestoreに保存するフロー。
- * 画像抽出ロジックを強化し、media:contentなどのタグにも対応。
+ * 管理者権限チェックをサーバー側で実施。
  */
 
 import { ai } from '@/ai/genkit';
@@ -12,7 +12,9 @@ import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
 
-// media:content 等の拡張タグを読み取るためのカスタムフィールド設定
+// 管理者のメールアドレス（ここもご自身のものに書き換えてください）
+const ADMIN_EMAIL = "admin@example.com";
+
 const parser = new Parser({
   customFields: {
     item: [
@@ -32,7 +34,8 @@ const SyncRssInputSchema = z.object({
     name: z.string(),
     url: z.string(),
     category: z.string()
-  }))
+  })),
+  requesterEmail: z.string().describe('リクエストを送信したユーザーのメールアドレス')
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -56,11 +59,18 @@ const syncRssFlow = ai.defineFlow(
     }),
   },
   async (input) => {
+    // 管理者チェック
+    if (input.requesterEmail !== ADMIN_EMAIL) {
+      throw new Error('管理者のみがこの記事の更新を実行できます。');
+    }
+
     const { firestore } = initializeFirebase();
     let addedCount = 0;
     let updatedCount = 0;
     const errors: string[] = [];
     let processedSources = 0;
+
+    console.log(`[AI Key Check] Execution started: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
     for (const source of input.sources) {
       if (!source.url || !source.url.startsWith('http')) continue;
@@ -70,70 +80,51 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 直近3件に絞って処理（API節約のため）
+        // 直近3件に絞って処理
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
-          // 画像抽出ロジック
+          // 画像抽出
           let extractedImageUrl = '';
-          
-          // 1. enclosureから探す
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
-          } 
-          // 2. media:contentから探す
-          else if (item.mediaContent && item.mediaContent.length > 0) {
+          } else if (item.mediaContent && item.mediaContent.length > 0) {
             extractedImageUrl = item.mediaContent[0].$.url;
-          }
-          // 3. media:thumbnailから探す
-          else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
+          } else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
             extractedImageUrl = item.mediaThumbnail.$.url;
-          }
-          // 4. 内容(HTML)からimgタグを探す（簡易的）
-          else {
+          } else {
             const content = item.content || item.description || '';
             const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch && imgMatch[1]) {
-              extractedImageUrl = imgMatch[1];
-            }
+            if (imgMatch && imgMatch[1]) extractedImageUrl = imgMatch[1];
           }
 
           const articlesRef = collection(firestore, 'articles');
           const q = query(articlesRef, where('link', '==', link));
           const existingSnapshot = await getDocs(q);
 
-          const contentSnippet = item.contentSnippet || item.content || item.title || '';
           const existingData = existingSnapshot.docs[0]?.data();
-          
-          // 英語タイトルのまま、または要約がない場合は処理対象
           const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
           const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish;
 
           if (needsProcessing) {
-            console.log(`[AI Key Check] Before prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
-
             try {
-              // 統一された要約・翻訳フローを呼び出し
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
-                content: contentSnippet.substring(0, 1500)
+                content: (item.contentSnippet || item.content || '').substring(0, 1500)
               });
-              
-              console.log(`[AI Key Check] After prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
               if (result && result.translatedTitle && result.summary) {
                 const articleData = {
                   title: result.translatedTitle,
                   originalTitle: item.title,
-                  content: contentSnippet.substring(0, 2000),
+                  content: (item.contentSnippet || item.content || '').substring(0, 2000),
                   summary: result.summary,
                   link: link, 
                   sourceName: source.name,
                   publishedAt: item.isoDate || new Date().toISOString(),
-                  // 抽出した画像があればそれを使用、なければプレースホルダー
                   imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
                   category: source.category,
                   updatedAt: serverTimestamp()
@@ -147,18 +138,15 @@ const syncRssFlow = ai.defineFlow(
                   await updateDoc(articleDoc, articleData);
                   updatedCount++;
                 }
-                console.log(`[AI処理成功] 保存完了: ${result.translatedTitle}`);
               }
             } catch (e: any) {
-              console.error(`[AI Error] ${item.title}: AI処理に失敗したため保存をスキップ。`, e.message);
+              console.error(`[AI Skip] ${item.title}: 保存をスキップ。`, e.message);
             }
           }
-          
-          // レート制限対策として2秒待機（API節約と安定性のため）
+          // レート制限
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (e: any) {
-        console.error(`[RSS Error] ${source.name}:`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }
