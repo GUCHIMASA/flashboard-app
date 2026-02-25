@@ -8,7 +8,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 
 const parser = new Parser({
   headers: {
@@ -41,6 +41,7 @@ const articleTransformPrompt = ai.definePrompt({
   },
   output: { schema: SummarizeOutputSchema },
   config: {
+    // ニュース記事が誤ブロックされないよう制限を解除
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -50,11 +51,11 @@ const articleTransformPrompt = ai.definePrompt({
     ]
   },
   prompt: `
-あなたはニュース記事を日本語に翻訳し、要約するAIです。
+あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
 
-以下の情報を元に、必ず日本語で回答してください。
-1. [translatedTitle]: 元のタイトルを、日本のテックニュース（例: TechCrunch Japan, Gizmodo Japan）のような魅力的で自然な日本語に翻訳してください。
-2. [summary]: 記事の要点を「・」から始まる3つの短い箇条書きで、50文字以内の日本語で要約してください。
+指示：
+1. [translatedTitle]: 元の英語タイトルを、日本のテックニュース（例: TechCrunch Japan, Gizmodo Japan）のような、目を引く自然な日本語に翻訳・リライトしてください。
+2. [summary]: 記事の最も重要なポイントを3つ抽出し、「・」から始まる箇条書きの日本語で、合計50文字程度で簡潔にまとめてください。
 
 入力データ：
 元のタイトル: {{{originalTitle}}}
@@ -129,15 +130,15 @@ const syncRssFlow = ai.defineFlow(
 
           const contentSnippet = item.contentSnippet || item.content || item.title || '';
           
-          // 既存記事でも要約が不完全なら再処理
-          const isEnglish = (existingSnapshot.docs[0]?.data().title || '').match(/[a-zA-Z]{5,}/);
+          // 既存記事でも英語タイトルのまま、または要約が失敗しているなら再処理
+          const isEnglish = (existingSnapshot.docs[0]?.data().title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
           const needsProcessing = existingSnapshot.empty || 
             !existingSnapshot.docs[0].data().summary || 
             existingSnapshot.docs[0].data().summary.includes('失敗') ||
             isEnglish;
 
           if (needsProcessing) {
-            console.log(`[AI処理] 翻訳・要約開始: ${item.title}`);
+            console.log(`[AI処理開始] 記事: ${item.title}`);
             
             let summary = '';
             let translatedTitle = item.title;
@@ -154,7 +155,7 @@ const syncRssFlow = ai.defineFlow(
               }
             } catch (e: any) {
               console.error(`[AI Error] ${item.title}:`, e.message);
-              summary = '・AI解析に失敗しました\n・再試行が必要です\n・リンク先を参照してください';
+              summary = '・AI解析が制限されました\n・リンク先を確認してください\n・再同期を試してください';
             }
 
             const articleData = {

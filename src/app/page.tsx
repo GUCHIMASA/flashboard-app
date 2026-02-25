@@ -1,8 +1,8 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, RefreshCw, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, Info, Database, WifiOff, CheckCircle2, Calendar, Trash2 } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -22,7 +22,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { syncRss, clearArticles } from '@/ai/flows/sync-rss-flow';
+import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 
 export default function Home() {
@@ -154,21 +154,6 @@ export default function Home() {
     }
   };
 
-  const handleReset = async () => {
-    if (confirm("既存の記事データをすべて削除し、同期をやり直しますか？")) {
-      setIsRefreshing(true);
-      try {
-        await clearArticles();
-        toast({ title: "リセット完了", description: "記事データを削除しました。同期を再開します。" });
-        await handleRefresh();
-      } catch (error: any) {
-        toast({ variant: "destructive", title: "エラー", description: error.message });
-      } finally {
-        setIsRefreshing(false);
-      }
-    }
-  };
-
   const handleSourceSelect = (source: FeedSource | 'All') => {
     if (source === 'All') {
       setActiveCategory('All');
@@ -225,28 +210,15 @@ export default function Home() {
               />
             </div>
             <ThemeToggle />
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full h-10 w-10 border-white/10 text-destructive hover:bg-destructive/10"
-                onClick={handleReset}
-                disabled={isRefreshing}
-                title="データをリセット"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full h-10 w-10 border-white/10"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                title="AI同期を開始"
-              >
-                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-              </Button>
-            </div>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="rounded-full h-10 w-10 border-white/10"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+            </Button>
           </div>
         </header>
 
@@ -343,7 +315,7 @@ export default function Home() {
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
                   {normalizedArticles.length === 0 
-                    ? "Firestoreに記事が見つかりません。リセット＆同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
+                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
                     : `データベースには ${normalizedArticles.length} 件の記事がありますが、現在の条件には一致しません。`}
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
