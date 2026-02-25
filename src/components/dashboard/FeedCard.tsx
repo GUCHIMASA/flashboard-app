@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink, Globe } from 'lucide-react';
@@ -12,18 +12,21 @@ import { Article } from '@/app/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface FeedCardProps {
   article: Article;
+  isActive?: boolean;
 }
 
-export function FeedCard({ article }: FeedCardProps) {
+export function FeedCard({ article, isActive = false }: FeedCardProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const handleBookmark = () => {
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 親の onClick イベントを防ぐ
     if (!db || !user) {
       toast({
         variant: "destructive",
@@ -63,7 +66,12 @@ export function FeedCard({ article }: FeedCardProps) {
   const favicon = getFaviconUrl(article.link);
 
   return (
-    <Card className="flex flex-col h-full bg-card border-border hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden group">
+    <Card 
+      className={cn(
+        "flex flex-col h-full bg-card border-border hover:shadow-lg transition-all duration-300 rounded-2xl overflow-hidden group",
+        isActive ? "ring-2 ring-primary/20 shadow-xl" : "opacity-90 grayscale-[0.3]"
+      )}
+    >
       <CardHeader className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -82,7 +90,10 @@ export function FeedCard({ article }: FeedCardProps) {
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
           </span>
         </div>
-        <h3 className="text-base font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+        <h3 className={cn(
+          "text-base font-bold leading-tight line-clamp-2 transition-colors",
+          isActive ? "text-primary" : "text-foreground"
+        )}>
           {article.title}
         </h3>
         {article.tags && article.tags.length > 0 && (
@@ -96,32 +107,40 @@ export function FeedCard({ article }: FeedCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="px-4 py-2 flex-grow">
-        <div className="bg-muted/50 rounded-xl p-3 border border-border/50">
-          <div className="flex items-center gap-1.5 mb-1.5 text-primary">
-            <Sparkles className="w-3 h-3" />
-            <span className="text-[10px] font-black uppercase tracking-wider">AI Insight</span>
+      {/* AI Insight エリア：アクティブな時だけ展開される */}
+      <CardContent className="px-4 py-0 flex-grow">
+        <div className={cn(
+          "grid transition-all duration-500 ease-in-out",
+          isActive ? "grid-rows-[1fr] opacity-100 mb-4" : "grid-rows-[0fr] opacity-0"
+        )}>
+          <div className="overflow-hidden bg-muted/50 rounded-xl border border-border/50">
+            <div className="p-3">
+              <div className="flex items-center gap-1.5 mb-1.5 text-primary">
+                <Sparkles className="w-3 h-3" />
+                <span className="text-[10px] font-black uppercase tracking-wider">AI Insight</span>
+              </div>
+              {article.summary ? (
+                <p className="text-xs text-foreground/80 leading-relaxed">
+                  {article.summary}
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground italic">要約を生成中...</p>
+              )}
+            </div>
           </div>
-          {article.summary ? (
-            <p className="text-xs text-foreground/80 leading-relaxed line-clamp-4">
-              {article.summary}
-            </p>
-          ) : (
-            <p className="text-[10px] text-muted-foreground italic">要約を生成中...</p>
-          )}
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-2 flex items-center justify-between">
+      <CardFooter className="p-4 pt-2 flex items-center justify-between mt-auto">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleBookmark} disabled={isBookmarked}>
             {isBookmarked ? <BookmarkCheck className="h-4 w-4 text-primary" /> : <Bookmark className="h-4 w-4" />}
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={(e) => e.stopPropagation()}>
             <Share2 className="h-4 w-4" />
           </Button>
         </div>
-        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-bold">
+        <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-bold" onClick={(e) => e.stopPropagation()}>
           <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
             記事を読む <ExternalLink className="h-3 w-3" />
           </a>

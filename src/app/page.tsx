@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
@@ -44,6 +44,10 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // アクティブな記事のIDを管理
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
+  const cardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const isAdmin = useMemo(() => {
     return user && user.email === ADMIN_EMAIL;
@@ -131,6 +135,33 @@ export default function Home() {
   const heroArticles = useMemo(() => {
     return normalizedArticles.slice(0, 5);
   }, [normalizedArticles]);
+
+  // スクロール検知で真ん中のカードをアクティブにする
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '-40% 0% -40% 0%', // 画面中央付近を検知範囲にする
+      threshold: 0
+    };
+
+    const observerCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const articleId = entry.target.getAttribute('data-article-id');
+          if (articleId) setActiveArticleId(articleId);
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    
+    // 現在表示されている全てのカードを監視対象にする
+    Object.values(cardRefs.current).forEach(el => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [filteredArticles]);
 
   const handleRefresh = async () => {
     if (isRefreshing || !isAdmin) return;
@@ -280,7 +311,18 @@ export default function Home() {
             ) : filteredArticles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredArticles.map((article) => (
-                  <FeedCard key={article.id} article={article} />
+                  <div 
+                    key={article.id} 
+                    ref={el => { cardRefs.current[article.id] = el }}
+                    data-article-id={article.id}
+                    onClick={() => setActiveArticleId(article.id)}
+                    className="cursor-pointer transition-transform duration-300"
+                  >
+                    <FeedCard 
+                      article={article} 
+                      isActive={activeArticleId === article.id}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (
