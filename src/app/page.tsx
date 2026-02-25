@@ -2,34 +2,30 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
+import { Bookmark, ArrowRight, CheckCircle2, WifiOff, Calendar, Info, Database } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 import Header from '@/components/header';
-import { useAuth } from '@/contexts/auth';
 
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
-  const { user, loading: userLoading } = useAuth();
+  const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
@@ -130,11 +126,6 @@ export default function Home() {
     });
   }, [sortedArticles, activeCategory, selectedSourceName, searchQuery]);
 
-  const latestUpdateDate = useMemo(() => {
-    if (sortedArticles.length === 0) return null;
-    return new Date(sortedArticles[0].publishedAt);
-  }, [sortedArticles]);
-
   const heroArticles = useMemo(() => {
     return sortedArticles.slice(0, 5);
   }, [sortedArticles]);
@@ -170,13 +161,6 @@ export default function Home() {
     }
   };
 
-  const categoryNames: Record<string, string> = {
-    'All': 'すべて',
-    'Reliable': '信頼ソース',
-    'Discovery': '発見',
-    'Bookmarks': '保管庫'
-  };
-
   return (
     <div className="flex min-h-screen w-full">
       <DashboardSidebar 
@@ -208,7 +192,6 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
                           priority
-                          data-ai-hint="futuristic tech"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">

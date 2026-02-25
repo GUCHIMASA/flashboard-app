@@ -1,56 +1,27 @@
 
 "use client";
 
-import { useAuth } from '@/contexts/auth';
-import { auth } from '@/lib/firebase/client';
-import { signOut } from 'firebase/auth';
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import AuthForm from './auth-form';
+import React from 'react';
+import { UserMenu } from './auth/UserMenu';
+import { ThemeToggle } from './dashboard/ThemeToggle';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
+/**
+ * 統合されたアプリケーションヘッダー
+ */
 export default function Header() {
-  const { user, loading } = useAuth();
-
-  const handleLogout = async () => {
-    await signOut(auth);
-  };
-
-  if (loading) {
-    return <div className="h-10" />;
-  }
-
   return (
-    <header className="flex justify-between items-center p-4">
-      <h1 className="text-xl font-bold">News Aggregator</h1>
-      <div>
-        {user ? (
-          <div className="flex items-center gap-4">
-            <Avatar>
-              <AvatarImage src={user.photoURL || undefined} />
-              <AvatarFallback>{user.email?.[0].toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <Button onClick={handleLogout} variant="outline">Logout</Button>
-          </div>
-        ) : (
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Login</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Login</DialogTitle>
-              </DialogHeader>
-              <AuthForm />
-            </DialogContent>
-          </Dialog>
-        )}
+    <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-background/60 backdrop-blur-md px-4 md:px-8 h-16 flex items-center justify-between">
+      <div className="flex items-center gap-4">
+        <SidebarTrigger className="md:hidden" />
+        <h1 className="font-headline font-black text-xl tracking-tighter hidden md:block">
+          AI <span className="text-primary">SYNAPSE</span>
+        </h1>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <UserMenu />
       </div>
     </header>
   );
