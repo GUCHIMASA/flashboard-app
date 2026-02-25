@@ -19,7 +19,6 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
-import { firebaseConfig } from '@/firebase/config';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -32,7 +31,7 @@ const AVAILABLE_TAGS = [
 ];
 
 export default function Home() {
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
@@ -173,7 +172,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen w-full">
+    <div className="flex min-h-screen w-full overflow-x-hidden">
       <DashboardSidebar 
         activeCategory={activeCategory as any} 
         selectedSourceName={selectedSourceName}
@@ -187,11 +186,11 @@ export default function Home() {
         onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" })}
       />
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         <Header />
-        <div className="flex-1 p-4 md:p-10 space-y-10 max-w-[1800px] mx-auto w-full">
+        <div className="flex-1 p-4 md:p-10 space-y-10 max-w-full md:max-w-[1800px] mx-auto w-full overflow-x-hidden">
           {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
-            <section className="relative">
+            <section className="relative overflow-hidden rounded-[2.5rem]">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
                   {heroArticles.map((article) => (
@@ -205,7 +204,7 @@ export default function Home() {
                           priority
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                        <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
+                        <div className="absolute bottom-0 left-0 p-6 md:p-16 w-full max-w-4xl">
                           <div className="flex items-center gap-3 mb-4">
                             <Badge className="bg-primary/20 backdrop-blur-md text-primary-foreground border-primary/30 py-1 px-3">
                               {article.sourceName}
@@ -215,11 +214,11 @@ export default function Home() {
                               {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
                             </span>
                           </div>
-                          <h1 className="font-headline text-2xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg">
+                          <h1 className="font-headline text-xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg line-clamp-2 md:line-clamp-none">
                             {article.title}
                           </h1>
-                          <Button asChild className="rounded-full px-10 h-14 font-black text-lg neo-blur">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">全文を読む <ArrowRight className="ml-2 w-5 h-5" /></a>
+                          <Button asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 font-black text-sm md:text-lg neo-blur">
+                            <a href={article.link} target="_blank" rel="noopener noreferrer">全文を読む <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" /></a>
                           </Button>
                         </div>
                       </div>
@@ -230,24 +229,26 @@ export default function Home() {
             </section>
           )}
 
-          <section>
+          <section className="w-full">
             <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border shrink-0">
-                <TabsList className="bg-transparent h-10">
-                  <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
-                  <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary">信頼ソース</TabsTrigger>
-                  <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">発見</TabsTrigger>
-                  <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border shrink-0 inline-flex">
+                  <TabsList className="bg-transparent h-10">
+                    <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary whitespace-nowrap">信頼ソース</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               
-              <div className="flex items-center gap-3 overflow-hidden w-full md:w-auto">
-                <div className="flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50 text-[10px] font-black text-muted-foreground">
+              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                <div className="flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50 text-[10px] font-black text-muted-foreground whitespace-nowrap">
                   <Database className="w-3 h-3 text-primary" />
                   {filteredArticles.length} / {normalizedArticles.length}
                 </div>
                 {isAdmin && (
-                  <Button variant="outline" size="sm" className="rounded-full h-9 px-4 font-bold border-primary/30 hover:bg-primary/10" onClick={handleRefresh} disabled={isRefreshing}>
+                  <Button variant="outline" size="sm" className="rounded-full h-9 px-4 font-bold border-primary/30 hover:bg-primary/10 whitespace-nowrap" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "AI同期中..." : "AI同期"}
                   </Button>
                 )}
@@ -255,10 +256,10 @@ export default function Home() {
             </div>
 
             {/* タグ絞り込みバー */}
-            <div className="mb-8 flex items-center gap-3">
+            <div className="mb-8 flex items-center gap-3 w-full">
               <div className="flex items-center gap-2 text-muted-foreground shrink-0">
                 <TagIcon className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-widest">タグ絞り込み:</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">タグ絞り込み:</span>
               </div>
               <ScrollArea className="w-full whitespace-nowrap">
                 <div className="flex gap-2 pb-2">
@@ -301,14 +302,14 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="py-32 text-center glass-panel rounded-[3rem]">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-6 animate-bounce">
-                  <Info className="w-8 h-8" />
+              <div className="py-20 md:py-32 text-center glass-panel rounded-[2rem] md:rounded-[3rem]">
+                <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary mb-6 animate-bounce">
+                  <Info className="w-6 h-6 md:w-8 md:h-8" />
                 </div>
-                <h3 className="text-2xl font-black mb-2 uppercase">
+                <h3 className="text-xl md:text-2xl font-black mb-2 uppercase">
                   該当記事なし
                 </h3>
-                <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
+                <p className="text-muted-foreground text-sm max-w-xs md:max-w-md mx-auto mb-8 px-4">
                   {selectedTag ? `タグ「#${selectedTag}」に一致する記事はありません。` : "現在の条件に一致する記事は見つかりませんでした。"}
                 </p>
                 {(selectedTag || searchQuery || activeCategory !== 'All') && (
