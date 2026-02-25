@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink, Globe } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +52,17 @@ export function FeedCard({ article }: FeedCardProps) {
     });
   };
 
+  const getFaviconUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    } catch {
+      return null;
+    }
+  };
+
+  const favicon = getFaviconUrl(article.link);
+
   const categoryLabels: Record<string, string> = {
     'Reliable': '信頼',
     'Discovery': '発見',
@@ -72,8 +83,17 @@ export function FeedCard({ article }: FeedCardProps) {
           </span>
         </div>
         <div className="space-y-1">
-          <div className="flex items-center gap-1">
-            <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter">{article.sourceName}</span>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-sm overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5">
+              {favicon ? (
+                <img src={favicon} alt="" className="w-full h-full object-contain" />
+              ) : (
+                <Globe className="w-3 h-3 text-muted-foreground/50" />
+              )}
+            </div>
+            <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter truncate">
+              {article.sourceName}
+            </span>
           </div>
           <h3 className="font-headline text-[12px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2">
             {article.title}
