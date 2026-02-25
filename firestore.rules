@@ -1,24 +1,120 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 記事は全ユーザーが読み取り可能。同期のために書き込みも許可。
-    match /articles/{articleId} {
-      allow read: if true;
-      allow write: if true;
+
+    /**
+     * AI Synapse Security Rules
+     * 
+     * CORE PHILOSOPHY:
+     * This ruleset enforces a strict user-ownership model combined with global read-only access for 
+     * curated content. Security is achieved through path-based authorization and structural 
+     * segregation of data.
+     * 
+     * DATA STRUCTURE:
+     * - /users/{userId}: Private user profiles and configuration.
+     * - /users/{userId}/custom_sources: User-specific RSS feed configurations.
+     * - /users/{userId}/custom_content: AI-summarized items derived from user-specific sources.
+     * - /sources_public: Globally shared, read-only content sources.
+     * - /content_public: Globally shared, read-only summarized content items.
+     * 
+     * KEY SECURITY DECISIONS:
+     * - Authentication Requirement: All data access (including public collections) requires a 
+     *   valid authenticated session to prevent unauthorized scraping or resource exhaustion.
+     * - Ownership via Path & Data: For user-specific collections, the rules verify that the 
+     *   authenticated user's UID matches the {userId} path segment.
+     * - Denormalization for Authorization: Custom sources and content documents include 
+     *   denormalized ownership fields (ownerUserId, sourceOwnerUserId) to ensure authorization 
+     *   is atomic and does not require costly cross-document lookups.
+     * - Immutability: Ownership fields are enforced as immutable during updates to prevent 
+     *   data hijacking or accidental reassignment.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
     }
-    
-    // ユーザー個別のデータ（認証済みユーザーのみ）
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Combines ownership check with document existence for safe state-changing operations. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for User profile documents.
+     * @path /users/{userId}
+     * @allow (create) if the user is creating their own profile.
+     * @deny (list) if a user attempts to browse all user profiles.
+     * @principle Self-creation and strict ownership of the user document.
+     */
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      match /sources/{sourceId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Rules for a user's custom RSS sources.
+       * @path /users/{userId}/custom_sources/{sourceId}
+       * @allow (create) if ownerUserId in data matches the owner in the path.
+       * @deny (update) if the ownerUserId field is being modified.
+       * @principle Path-based authorization with denormalized ownership verification.
+       */
+      match /custom_sources/{sourceId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.ownerUserId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.ownerUserId == resource.data.ownerUserId;
+        allow delete: if isExistingOwner(userId);
       }
-      
-      match /bookmarks/{bookmarkId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      /**
+       * @description Rules for content items generated from a user's custom sources.
+       * @path /users/{userId}/custom_content/{contentItemId}
+       * @allow (list) if the user is the owner of the path.
+       * @deny (create) if the sourceOwnerUserId does not match the authenticated user.
+       * @principle Ensures private content is only accessible to the content creator.
+       */
+      match /custom_content/{contentItemId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.sourceOwnerUserId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.sourceOwnerUserId == resource.data.sourceOwnerUserId;
+        allow delete: if isExistingOwner(userId);
       }
+    }
+
+    /**
+     * @description Rules for official, globally accessible AI content sources.
+     * @path /sources_public/{sourceId}
+     * @allow (get) for any signed-in user.
+     * @deny (write) for all users; public sources are managed by system/admin processes.
+     * @principle Read-only access for authenticated users to public directories.
+     */
+    match /sources_public/{sourceId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Rules for aggregated content items from public sources.
+     * @path /content_public/{contentItemId}
+     * @allow (list) for any authenticated user.
+     * @deny (delete) by any client; deletion is handled by background cleanup tasks.
+     * @principle Public consumption of system-generated aggregated data.
+     */
+    match /content_public/{contentItemId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
     }
   }
 }
