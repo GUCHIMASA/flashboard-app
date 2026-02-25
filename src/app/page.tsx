@@ -1,8 +1,7 @@
-
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, AlertCircle, Info, Database, WifiOff, CheckCircle2 } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -23,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { firebaseConfig } from '@/firebase/config';
 
 export default function Home() {
   const { user } = useUser();
@@ -37,6 +37,14 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // デバッグ用: Firebaseの設定がクライアントで読み込まれているか確認
+  useEffect(() => {
+    console.log("🛠️ Client Firebase Config:", {
+      projectId: firebaseConfig.projectId,
+      hasApiKey: !!firebaseConfig.apiKey
+    });
+  }, []);
 
   // カスタムソースの取得
   const sourcesQuery = useMemo(() => {
@@ -55,7 +63,7 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // 記事の取得 (インデックスエラーを避けるため、最初は単純なクエリにする)
+  // 記事の取得 (インデックスエラー回避のため最も単純なクエリにする)
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
@@ -82,11 +90,13 @@ export default function Home() {
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
-  // データ整形 (url/link フィールドの不一致を吸収)
+  // データ整形 (url/link フィールドの不一致を完全に吸収)
   const normalizedArticles = useMemo(() => {
-    console.log("🔥 Firestore Raw Data Count:", firestoreArticles.length);
+    if (firestoreArticles.length > 0) {
+      console.log("✅ Firestore articles found:", firestoreArticles.length);
+    }
     return (firestoreArticles as any[]).map(a => {
-      // 日付の正規化 (Timestamp, String, createdAt)
+      // 日付の正規化
       let dateStr = a.publishedAt;
       if (!dateStr && a.createdAt?.toDate) {
         dateStr = a.createdAt.toDate().toISOString();
@@ -99,13 +109,13 @@ export default function Home() {
         ...a,
         id: a.id,
         title: a.title || 'No Title',
-        link: a.link || a.url || '#',
+        link: a.link || a.url || '#', // urlとlinkの両方に対応
         category: a.category || 'Reliable',
         sourceName: a.sourceName || 'Unknown',
         publishedAt: dateStr,
         imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`
-      };
-    }) as Article[];
+      } as Article;
+    });
   }, [firestoreArticles]);
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
@@ -240,6 +250,17 @@ export default function Home() {
         </header>
 
         <div className="flex-1 p-4 md:p-10 space-y-10 max-w-[1800px] mx-auto w-full">
+          {/* 設定エラー警告 */}
+          {!firebaseConfig.projectId && (
+            <Alert variant="destructive" className="animate-bounce">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Configuration Missing</AlertTitle>
+              <AlertDescription>
+                FirebaseのプロジェクトIDが設定されていません。.env ファイルの NEXT_PUBLIC_FIREBASE_PROJECT_ID を確認してください。
+              </AlertDescription>
+            </Alert>
+          )}
+
           {articlesError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -279,7 +300,7 @@ export default function Home() {
           )}
 
           <section>
-            <div className="mb-8 flex items-center justify-between">
+            <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border">
                 <TabsList className="bg-transparent h-10">
                   <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">All</TabsTrigger>
@@ -288,9 +309,20 @@ export default function Home() {
                   <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                <Database className="w-3 h-3 text-primary" />
-                {filteredArticles.length} VISIBLE / {normalizedArticles.length} IN DB
+              <div className="flex items-center gap-4">
+                <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50">
+                  <Database className="w-3 h-3 text-primary" />
+                  {filteredArticles.length} VISIBLE / {normalizedArticles.length} IN DB
+                </div>
+                {firebaseConfig.projectId ? (
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-green-500 uppercase">
+                    <CheckCircle2 className="w-3 h-3" /> ONLINE
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase">
+                    <WifiOff className="w-3 h-3" /> CONFIG ERROR
+                  </div>
+                )}
               </div>
             </div>
 
@@ -314,15 +346,15 @@ export default function Home() {
                   <Info className="w-8 h-8" />
                 </div>
                 <h3 className="text-2xl font-black mb-2 uppercase">
-                  {normalizedArticles.length === 0 ? "Database is Empty" : "No Matches Found"}
+                  {normalizedArticles.length === 0 ? "Database Connection Idle" : "No Matches Found"}
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
                   {normalizedArticles.length === 0 
-                    ? "データベースに記事がありません。右上の同期ボタンを押してAIに記事を取得させてください。"
+                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を取得させてください。記事が蓄積されているのに表示されない場合は、Firebaseの設定（Project ID等）を再確認してください。"
                     : `Firestoreには ${normalizedArticles.length} 件の記事がありますが、現在のフィルター（${activeCategory}）には一致しません。`}
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "SYNCHRONIZING..." : "INITIALIZE SYNC"}
+                  {isRefreshing ? "SYNCHRONIZING..." : "START AI SYNC"}
                 </Button>
               </div>
             )}
