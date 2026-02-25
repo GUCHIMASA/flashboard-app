@@ -78,7 +78,7 @@ const syncRssFlow = ai.defineFlow(
         for (const item of items) {
           if (!item.link || !item.title) continue;
 
-          // 重複チェック (urlフィールドとlinkフィールドの両方を確認)
+          // 重複チェック (linkフィールドで統一)
           const articlesRef = collection(firestore, 'articles');
           const q = query(articlesRef, where('link', '==', item.link));
           const existingSnapshot = await getDocs(q);
@@ -102,7 +102,7 @@ const syncRssFlow = ai.defineFlow(
               title: item.title,
               content: content.substring(0, 1000),
               summary: summary,
-              link: item.link, // 'url'ではなく'link'に統一
+              link: item.link, 
               sourceName: source.name,
               publishedAt: item.isoDate || new Date().toISOString(),
               imageUrl: `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,

@@ -17,8 +17,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { format, formatDistanceToNow } from 'date-fns';
-import { ja } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
@@ -86,7 +85,7 @@ export default function Home() {
     sourceUrl: '#',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
     category: 'Reliable', 
-    link: b.url || b.link || '#',
+    link: b.link || b.url || '#',
     imageUrl: b.imageUrl || 'https://picsum.photos/seed/placeholder/800/400'
   }));
 
@@ -94,14 +93,14 @@ export default function Home() {
   const normalizedArticles = useMemo(() => {
     return (firestoreArticles as any[]).map(a => ({
       ...a,
-      link: a.link || a.url || '#', // urlフィールドが使われている場合の互換性
+      link: a.link || a.url || '#',
       publishedAt: a.publishedAt || a.createdAt?.toDate?.()?.toISOString() || new Date().toISOString()
     })) as Article[];
   }, [firestoreArticles]);
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  // 最新順にソート
+  // 最新順にソート (クライアントサイドソート)
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => {
       const dateA = new Date(a.publishedAt).getTime();
@@ -311,7 +310,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-2xl font-black mb-2 uppercase">No Data Found</h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
-                  Firestoreには {sortedArticles.length} 件の記事がありますが、現在のフィルターには一致しません。<br />
+                  Firestoreには {firestoreArticles.length} 件の記事がありますが、現在のフィルターには一致しません。<br />
                   「INITIALIZE SYNC」を押して最新情報を取得してください。
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
