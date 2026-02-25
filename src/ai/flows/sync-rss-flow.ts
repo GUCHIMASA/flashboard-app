@@ -41,7 +41,6 @@ const articleTransformPrompt = ai.definePrompt({
   },
   output: { schema: SummarizeOutputSchema },
   config: {
-    // ニュース記事（脆弱性や攻撃などの言葉）が誤ブロックされないよう制限を完全に解除
     safetySettings: [
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
@@ -100,7 +99,6 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 最新3件を処理
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
@@ -113,12 +111,12 @@ const syncRssFlow = ai.defineFlow(
 
           const contentSnippet = item.contentSnippet || item.content || item.title || '';
           
-          // 既存記事でも英語タイトルのまま、または要約が失敗しているなら再処理
-          const isEnglish = (existingSnapshot.docs[0]?.data().title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
+          const existingData = existingSnapshot.docs[0]?.data();
+          const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
+          
+          // needsProcessingの条件からキーワード判定を削除
           const needsProcessing = existingSnapshot.empty || 
-            !existingSnapshot.docs[0].data().summary || 
-            existingSnapshot.docs[0].data().summary.includes('失敗') ||
-            existingSnapshot.docs[0].data().summary.includes('制限') ||
+            !existingData?.summary || 
             isEnglish;
 
           if (needsProcessing) {
@@ -127,20 +125,27 @@ const syncRssFlow = ai.defineFlow(
             let summary = '';
             let translatedTitle = item.title;
 
+            // APIキーの存在確認 (true/falseのみ)
+            console.log(`[AI Key Check] Before prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
+
             try {
               const { output } = await articleTransformPrompt({
                 originalTitle: item.title,
                 content: contentSnippet.substring(0, 1500)
               });
               
+              console.log(`[AI Key Check] After prompt: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
+
               if (output) {
                 summary = output.summary;
                 translatedTitle = output.translatedTitle;
               }
             } catch (e: any) {
               console.error(`[AI Error] ${item.title}:`, e.message);
-              // 具体的なエラー文ではなく、ユーザー向けの定型文をセット
-              summary = '・AI解析が一時的に制限されました\n・リンク先で詳細を確認してください\n・再度同期を試してください';
+              console.log(`[AI Key Check] After prompt (error): ${!!process.env.GOOGLE_GENAI_API_KEY}`);
+              // 失敗時はsummaryを空文字、titleを元のままにする
+              summary = '';
+              translatedTitle = item.title;
             }
 
             const articleData = {
@@ -165,6 +170,8 @@ const syncRssFlow = ai.defineFlow(
               updatedCount++;
             }
           }
+          // 記事を1件処理するたびに2秒待機する (レート制限対策)
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (e: any) {
         console.error(`[RSS Error] ${source.name}:`, e.message);

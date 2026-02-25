@@ -39,7 +39,6 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Firestoreからカスタムソースを取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -56,14 +55,12 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // Firestoreから記事を取得 (インデックスエラー回避のためシンプルなクエリ)
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
-  // ブックマークを取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -83,7 +80,6 @@ export default function Home() {
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
-  // 記事データの正規化とクライアント側でのソート
   const normalizedArticles = useMemo(() => {
     return (firestoreArticles as any[]).map(a => {
       let dateStr = a.publishedAt;
