@@ -11,7 +11,6 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      timeout: 120, // タイムアウトを120秒に延長
     },
   },
   images: {
