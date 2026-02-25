@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、Geminiで要約を生成してFirestoreに保存するフロー。
