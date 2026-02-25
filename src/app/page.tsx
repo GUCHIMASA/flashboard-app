@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Search, RefreshCw, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, Info, Database, WifiOff, CheckCircle2, Calendar } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
@@ -39,6 +39,7 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Firestoreからカスタムソースを取得
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
@@ -55,12 +56,14 @@ export default function Home() {
     }))
   ], [customSources]);
 
+  // Firestoreから記事を取得（インデックス待ちエラーを避けるためシンプルなクエリ）
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
+  // ブックマークを取得
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -80,6 +83,7 @@ export default function Home() {
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`
   }));
 
+  // 記事データの正規化とクライアント側でのソート
   const normalizedArticles = useMemo(() => {
     return (firestoreArticles as any[]).map(a => {
       let dateStr = a.publishedAt;
@@ -232,6 +236,7 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
                           priority
+                          data-ai-hint="futuristic landscape"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">

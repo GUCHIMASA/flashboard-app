@@ -31,6 +31,33 @@ const SummarizeOutputSchema = z.object({
   translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳された記事タイトル') 
 });
 
+const articleTransformPrompt = ai.definePrompt({
+  name: 'articleTransformPrompt',
+  input: {
+    schema: z.object({
+      originalTitle: z.string(),
+      content: z.string()
+    })
+  },
+  output: { schema: SummarizeOutputSchema },
+  prompt: `
+あなたはニュース記事を日本語で要約・翻訳する専門家です。
+以下の情報を元に、日本の読者が一瞬で理解できる内容に変換してください。
+
+1. [translatedTitle]: 
+   - 記事のタイトルを日本のテックニュース風に翻訳してください。
+   - 読者の興味を引く、短くインパクトのある日本語にしてください。
+
+2. [summary]: 
+   - 記事の最も重要なポイントを「3つの箇条書き（・）」で要約してください。
+   - 各文は15文字以内、全体で50文字程度。
+   - 余計な説明は省き、事実のみを伝えてください。
+
+元のタイトル: {{originalTitle}}
+内容の断片: {{content}}
+`
+});
+
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
   try {
     return await syncRssFlow(input);
@@ -60,11 +87,11 @@ const syncRssFlow = ai.defineFlow(
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`[RSS Sync] Fetching: ${source.name} (${source.url})`);
+        console.log(`[RSS Sync] 取得中: ${source.name}`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 負荷軽減のため最新2件を取得
+        // 最新の2件を処理
         const items = feed.items.slice(0, 2);
 
         for (const item of items) {
@@ -76,22 +103,16 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           if (existingSnapshot.empty) {
-            console.log(`[AI Insight] Processing article: ${item.title}`);
-            const content = item.contentSnippet || item.content || item.title || '';
+            console.log(`[AI処理] 翻訳・要約開始: ${item.title}`);
+            const contentSnippet = item.contentSnippet || item.content || item.title || '';
             
-            let summary = '・要約の生成に失敗しました';
+            let summary = '・要約生成中...';
             let translatedTitle = item.title;
 
             try {
-              const { output } = await ai.generate({
-                model: 'googleai/gemini-1.5-flash',
-                prompt: `以下の記事情報を処理してください。
-1. translatedTitle: 日本の読者が興味を持つような自然な日本語に翻訳されたタイトル。
-2. summary: 記事の内容を「3つの短い箇条書き（・）」で、各文15文字以内の日本語で。
-
-タイトル: ${item.title}
-本文/概要: ${content.substring(0, 1000)}`,
-                output: { schema: SummarizeOutputSchema }
+              const { output } = await articleTransformPrompt({
+                originalTitle: item.title,
+                content: contentSnippet.substring(0, 1000)
               });
               
               if (output) {
@@ -99,13 +120,14 @@ const syncRssFlow = ai.defineFlow(
                 translatedTitle = output.translatedTitle;
               }
             } catch (e: any) {
-              console.error(`[AI Error] Failed for "${item.title}":`, e.message);
+              console.error(`[AI Error] 記事 "${item.title}" の処理に失敗:`, e.message);
+              summary = '・AI解析に失敗しました\n・元の内容をご確認ください\n・通信環境を確認してください';
             }
 
             await addDoc(articlesRef, {
               title: translatedTitle,
               originalTitle: item.title,
-              content: content.substring(0, 1500),
+              content: contentSnippet.substring(0, 1500),
               summary: summary,
               link: link, 
               sourceName: source.name,
@@ -116,10 +138,11 @@ const syncRssFlow = ai.defineFlow(
             });
             
             addedCount++;
+            console.log(`[成功] 保存完了: ${translatedTitle}`);
           }
         }
       } catch (e: any) {
-        console.error(`[RSS Error] Source "${source.name}" failed:`, e.message);
+        console.error(`[RSS Error] ソース "${source.name}" が失敗:`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }
