@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, RefreshCw, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, Info, Database, WifiOff, CheckCircle2, Calendar } from 'lucide-react';
+import { Search, RefreshCw, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2, Info, Database, WifiOff, CheckCircle2, Calendar, Trash2 } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -22,7 +22,7 @@ import Image from 'next/image';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { syncRss } from '@/ai/flows/sync-rss-flow';
+import { syncRss, clearArticles } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 
 export default function Home() {
@@ -56,7 +56,7 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  // Firestoreから記事を取得（インデックス待ちエラーを避けるためシンプルなクエリ）
+  // Firestoreから記事を取得
   const articlesQuery = useMemo(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
@@ -144,13 +144,28 @@ export default function Home() {
     try {
       const result = await syncRss({ sources: allSources });
       toast({ 
-        title: result.addedCount > 0 ? "同期完了" : "更新なし", 
-        description: `${result.addedCount}件の新しい記事を取得しました。` 
+        title: result.addedCount > 0 || result.updatedCount > 0 ? "同期完了" : "更新なし", 
+        description: `${result.addedCount + result.updatedCount}件の記事を処理しました。` 
       });
     } catch (error: any) {
       toast({ variant: "destructive", title: "同期エラー", description: error.message });
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (confirm("既存の記事データをすべて削除し、同期をやり直しますか？")) {
+      setIsRefreshing(true);
+      try {
+        await clearArticles();
+        toast({ title: "リセット完了", description: "記事データを削除しました。同期を再開します。" });
+        await handleRefresh();
+      } catch (error: any) {
+        toast({ variant: "destructive", title: "エラー", description: error.message });
+      } finally {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -210,15 +225,28 @@ export default function Home() {
               />
             </div>
             <ThemeToggle />
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="rounded-full h-10 w-10 border-white/10"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full h-10 w-10 border-white/10 text-destructive hover:bg-destructive/10"
+                onClick={handleReset}
+                disabled={isRefreshing}
+                title="データをリセット"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="rounded-full h-10 w-10 border-white/10"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="AI同期を開始"
+              >
+                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
+              </Button>
+            </div>
           </div>
         </header>
 
@@ -236,7 +264,7 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover:scale-110"
                           priority
-                          data-ai-hint="futuristic landscape"
+                          data-ai-hint="futuristic tech landscape"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                         <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-4xl">
@@ -315,7 +343,7 @@ export default function Home() {
                 </h3>
                 <p className="text-muted-foreground text-sm max-w-md mx-auto mb-8">
                   {normalizedArticles.length === 0 
-                    ? "Firestoreに記事が見つかりません。同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
+                    ? "Firestoreに記事が見つかりません。リセット＆同期ボタンを押してAIに最新情報を翻訳・取得させてください。"
                     : `データベースには ${normalizedArticles.length} 件の記事がありますが、現在の条件には一致しません。`}
                 </p>
                 <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>

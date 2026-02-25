@@ -2,14 +2,13 @@
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、Geminiで翻訳・要約を生成してFirestoreに保存するフロー。
- * 既存の英語記事も要約がない場合は自動的に翻訳・更新します。
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 const parser = new Parser({
   headers: {
@@ -47,33 +46,47 @@ const articleTransformPrompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
     ]
   },
   prompt: `
-あなたはニュース記事を日本語で要約・翻訳する専門家です。
-以下の情報を元に、日本の読者が一瞬で理解できる内容に変換してください。
+あなたはニュース記事を日本語に翻訳し、要約するAIです。
 
-1. [translatedTitle]: 
-   - 記事のタイトルを日本のテックニュース風に翻訳してください。
-   - 英語のままでなく、必ず「日本語」で出力してください。
-   - 読者の興味を引く、短くインパクトのある表現にしてください。
+以下の情報を元に、必ず日本語で回答してください。
+1. [translatedTitle]: 元のタイトルを、日本のテックニュース（例: TechCrunch Japan, Gizmodo Japan）のような魅力的で自然な日本語に翻訳してください。
+2. [summary]: 記事の要点を「・」から始まる3つの短い箇条書きで、50文字以内の日本語で要約してください。
 
-2. [summary]: 
-   - 記事の最も重要なポイントを「3つの箇条書き（・）」で要約してください。
-   - 各文は15文字以内、全体で50文字程度。
-   - 余計な説明は省き、事実のみを伝えてください。
-
+入力データ：
 元のタイトル: {{{originalTitle}}}
-内容の断片: {{{content}}}
+内容: {{{content}}}
+
+出力は必ず指定されたスキーマに従い、すべてのテキストを日本語にしてください。
 `
 });
+
+/**
+ * 全ての記事データを削除してクリーンな状態にする
+ */
+export async function clearArticles() {
+  try {
+    const { firestore } = initializeFirebase();
+    const articlesRef = collection(firestore, 'articles');
+    const snapshot = await getDocs(articlesRef);
+    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(firestore, 'articles', d.id)));
+    await Promise.all(deletePromises);
+    return { success: true, count: snapshot.size };
+  } catch (error: any) {
+    console.error('Clear Articles Error:', error);
+    throw new Error(`リセットに失敗しました: ${error.message}`);
+  }
+}
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
   try {
     return await syncRssFlow(input);
   } catch (error: any) {
     console.error('Flow Execution Error:', error);
-    throw new Error(`同期フローの実行中にエラーが発生しました: ${error.message}`);
+    throw new Error(`同期中にエラーが発生しました: ${error.message}`);
   }
 }
 
@@ -95,10 +108,6 @@ const syncRssFlow = ai.defineFlow(
     const errors: string[] = [];
     let processedSources = 0;
 
-    if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GEMINI_API_KEY) {
-      throw new Error('AI APIキーが設定されていません。環境変数を確認してください。');
-    }
-
     for (const source of input.sources) {
       if (!source.url || !source.url.startsWith('http')) continue;
       
@@ -119,8 +128,13 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           const contentSnippet = item.contentSnippet || item.content || item.title || '';
+          
+          // 既存記事でも要約が不完全なら再処理
+          const isEnglish = (existingSnapshot.docs[0]?.data().title || '').match(/[a-zA-Z]{5,}/);
           const needsProcessing = existingSnapshot.empty || 
-            (existingSnapshot.docs[0].data().summary?.includes('失敗') || !existingSnapshot.docs[0].data().summary);
+            !existingSnapshot.docs[0].data().summary || 
+            existingSnapshot.docs[0].data().summary.includes('失敗') ||
+            isEnglish;
 
           if (needsProcessing) {
             console.log(`[AI処理] 翻訳・要約開始: ${item.title}`);
@@ -139,8 +153,8 @@ const syncRssFlow = ai.defineFlow(
                 translatedTitle = output.translatedTitle;
               }
             } catch (e: any) {
-              console.error(`[AI Error] 記事 "${item.title}" の処理に失敗:`, e.message);
-              summary = '・AI解析に一時的に失敗しました\n・時間をおいて再同期してください\n・内容はリンク先で確認可能です';
+              console.error(`[AI Error] ${item.title}:`, e.message);
+              summary = '・AI解析に失敗しました\n・再試行が必要です\n・リンク先を参照してください';
             }
 
             const articleData = {
@@ -167,7 +181,7 @@ const syncRssFlow = ai.defineFlow(
           }
         }
       } catch (e: any) {
-        console.error(`[RSS Error] ソース "${source.name}" が失敗:`, e.message);
+        console.error(`[RSS Error] ${source.name}:`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }
