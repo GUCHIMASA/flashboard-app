@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
@@ -140,7 +141,7 @@ export default function Home() {
   useEffect(() => {
     const observerOptions = {
       root: null,
-      rootMargin: '-45% 0% -45% 0%', // 画面中央付近を検知範囲にする
+      rootMargin: '-50% 0% -50% 0%', // 画面の中央線で判定
       threshold: 0
     };
 
@@ -302,20 +303,23 @@ export default function Home() {
             </div>
 
             {articlesLoading && filteredArticles.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
+                  <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className={cn(
+                "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1",
+                "sm:snap-none snap-y snap-proximity" // モバイルのみスナップを有効化
+              )}>
                 {filteredArticles.map((article) => (
                   <div 
                     key={article.id} 
                     ref={el => { cardRefs.current[article.id] = el }}
                     data-article-id={article.id}
                     onClick={() => setActiveArticleId(article.id)}
-                    className="cursor-pointer"
+                    className="snap-center transition-all duration-300"
                   >
                     <FeedCard 
                       article={article} 

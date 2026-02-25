@@ -68,15 +68,15 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
   return (
     <Card 
       className={cn(
-        "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group",
+        "flex flex-col w-full bg-background border-border/40 transition-all duration-500 rounded-lg overflow-hidden group",
         isActive 
-          ? "ring-2 ring-primary/40 shadow-xl z-10 scale-[1.02] opacity-100" 
-          : "opacity-80 hover:opacity-100 hover:border-border/80"
+          ? "ring-2 ring-primary/40 shadow-xl z-20 scale-[1.01] opacity-100" 
+          : "opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0 hover:border-border/80"
       )}
     >
       <CardHeader className={cn(
-        "transition-all duration-300",
-        isActive ? "p-4 space-y-3" : "p-3 space-y-1"
+        "transition-all duration-500",
+        isActive ? "p-4 space-y-3" : "p-2 space-y-0.5"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -87,7 +87,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 <Globe className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </div>
-            <span className="text-xs font-black text-primary truncate uppercase tracking-tight">
+            <span className="text-[11px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
@@ -97,7 +97,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         </div>
         
         <h3 className={cn(
-          "font-black leading-tight transition-all duration-300",
+          "font-black leading-tight transition-all duration-500",
           isActive ? "text-lg text-primary" : "text-sm text-foreground line-clamp-1"
         )}>
           {article.title}
@@ -116,21 +116,21 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
       
       {/* AI Insight エリア */}
       <CardContent className={cn(
-        "px-4 transition-all duration-300",
+        "px-4 transition-all duration-500",
         isActive ? "pb-4 opacity-100" : "h-0 p-0 opacity-0 pointer-events-none"
       )}>
         <div className={cn(
-          "grid transition-all duration-300 ease-in-out",
+          "grid transition-all duration-500 ease-in-out",
           isActive ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
         )}>
           <div className="overflow-hidden bg-primary/5 rounded-xl border border-primary/10">
-            <div className="p-3">
-              <div className="flex items-center gap-2 mb-2 text-primary">
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3 text-primary">
                 <Sparkles className="w-4 h-4" />
                 <span className="text-[11px] font-black uppercase tracking-widest">Quick Insight</span>
               </div>
               {article.summary ? (
-                <p className="text-sm text-foreground/90 leading-relaxed font-medium">
+                <p className="text-sm text-foreground/90 leading-relaxed font-semibold">
                   {article.summary}
                 </p>
               ) : (
