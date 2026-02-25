@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap } from 'lucide-react';
+import { Search, RefreshCw, Filter, Sparkles, Bookmark, ArrowRight, Clock, Zap, Loader2 } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AdCard } from '@/components/dashboard/AdCard';
@@ -68,7 +68,8 @@ export default function Home() {
 
   const articlesQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(50));
+    // 重いクエリを避けるため最初はシンプルに取得
+    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(40));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
@@ -143,17 +144,26 @@ export default function Home() {
     if (isRefreshing) return;
     setIsRefreshing(true);
     
+    toast({
+      title: "同期を開始しました",
+      description: "AIが最新情報を収集・解析しています...",
+    });
+
     try {
       const result = await syncRss({ sources: allSources });
+      if (result.errors.length > 0) {
+        console.warn('Sync issues:', result.errors);
+      }
       toast({
-        title: "同期が完了しました",
-        description: `${result.addedCount}件の最新情報を取得しました。`,
+        title: "同期完了",
+        description: `${result.addedCount}件の新しい記事を取得しました。`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Refresh error:', error);
       toast({
         variant: "destructive",
         title: "同期エラー",
-        description: "接続を確認してください。",
+        description: "APIキーやネットワーク設定を確認してください。",
       });
     } finally {
       setIsRefreshing(false);
@@ -176,15 +186,15 @@ export default function Home() {
   };
 
   const headerTitle = useMemo(() => {
-    if (activeCategory === 'Bookmarks') return 'ブックマーク';
+    if (activeCategory === 'Bookmarks') return 'Vault';
     if (selectedSourceName) return selectedSourceName;
     const labels: Record<string, string> = {
-      'All': 'タイムライン',
-      'Reliable': '信頼済み',
-      'Discovery': '発見',
-      'Custom': 'カスタム'
+      'All': 'Stream',
+      'Reliable': 'Reliable',
+      'Discovery': 'Discovery',
+      'Custom': 'Custom'
     };
-    return labels[activeCategory] || 'タイムライン';
+    return labels[activeCategory] || 'Stream';
   }, [activeCategory, selectedSourceName]);
 
   return (
@@ -208,7 +218,7 @@ export default function Home() {
                 {headerTitle}
               </h2>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--primary),0.6)]" />
+                <div className={cn("w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(var(--primary),0.6)]", isRefreshing ? "bg-accent animate-spin" : "bg-primary animate-pulse")} />
                 <span className="text-[8px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   LATEST UPDATE: {latestUpdateDate ? format(latestUpdateDate, 'HH:mm') : '--:--'}
                 </span>
@@ -221,7 +231,7 @@ export default function Home() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <Input 
                 className="pl-10 bg-secondary/50 border-transparent focus-visible:ring-1 focus-visible:ring-primary h-9 md:h-11 rounded-full transition-all hover:bg-secondary text-xs md:text-sm" 
-                placeholder="インサイトを検索..." 
+                placeholder="Search Insights..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -234,7 +244,7 @@ export default function Home() {
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
-              <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={cn("w-4 h-4 md:w-5 md:h-5", isRefreshing && "animate-spin")} />
             </Button>
           </div>
         </header>
@@ -258,7 +268,6 @@ export default function Home() {
                           fill
                           className="object-cover transition-transform duration-[10s] group-hover/hero:scale-110"
                           priority
-                          data-ai-hint="futuristic technology"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
                         <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent hidden md:block" />
@@ -332,9 +341,15 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
-              {filteredArticles.length > 0 ? (
-                filteredArticles.map((article, index) => (
+            {articlesLoading && filteredArticles.length === 0 ? (
+               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-secondary/50 animate-pulse" />
+                  ))}
+               </div>
+            ) : filteredArticles.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
+                {filteredArticles.map((article, index) => (
                   <div 
                     key={article.id} 
                     className="animate-in fade-in slide-in-from-bottom-4 duration-700"
@@ -342,24 +357,20 @@ export default function Home() {
                   >
                     <FeedCard article={article} />
                   </div>
-                ))
-              ) : articlesLoading || isRefreshing ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] rounded-[2.5rem] bg-secondary/50 animate-pulse" />
-                ))
-              ) : (
-                <div className="col-span-full py-32 text-center glass-panel rounded-[3rem]">
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 text-primary mb-8 animate-float">
-                    <RefreshCw className="w-10 h-10" />
-                  </div>
-                  <h3 className="text-3xl font-black mb-3 tracking-tighter uppercase">No Insights Found</h3>
-                  <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-10">AIエンジンを起動して、世界中の最新ニュースを収集・解析しましょう。</p>
-                  <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh}>
-                    INITIALIZE SYNC
-                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="col-span-full py-32 text-center glass-panel rounded-[3rem]">
+                <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 text-primary mb-8 animate-float">
+                  {isRefreshing ? <Loader2 className="w-10 h-10 animate-spin" /> : <RefreshCw className="w-10 h-10" />}
                 </div>
-              )}
-            </div>
+                <h3 className="text-3xl font-black mb-3 tracking-tighter uppercase">No Insights Found</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-10">AIエンジンを起動して、世界中の最新ニュースを収集・解析しましょう。</p>
+                <Button size="lg" className="rounded-full px-12 font-black h-12" onClick={handleRefresh} disabled={isRefreshing}>
+                  {isRefreshing ? "SYNCHRONIZING..." : "INITIALIZE SYNC"}
+                </Button>
+              </div>
+            )}
           </section>
         </div>
       </main>
