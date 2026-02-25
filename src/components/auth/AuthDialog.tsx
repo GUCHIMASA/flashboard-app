@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -25,7 +24,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Chrome, Mail, Lock, UserPlus, LogIn } from 'lucide-react';
+import { Chrome, Mail, Lock, UserPlus } from 'lucide-react';
 
 const authSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
@@ -61,17 +60,35 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
         if (data.displayName) {
           await updateProfile(userCredential.user, { displayName: data.displayName });
         }
-        toast({ title: "ようこそ！", description: "アカウントの作成に成功しました。" });
+        toast({ title: "ようこそ！", description: "アカウントの作成とログインに成功しました。" });
       }
       onOpenChange(false);
       reset();
     } catch (error: any) {
+      console.error("Auth Error:", error.code, error.message);
+      let message = "認証中にエラーが発生しました。";
+      
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          message = "このメールアドレスは既に登録されています。ログインをお試しください。";
+          break;
+        case 'auth/invalid-credential':
+          message = "メールアドレスまたはパスワードが正しくありません。";
+          break;
+        case 'auth/operation-not-allowed':
+          message = "現在、メールアドレス認証が有効になっていません。管理者に連絡してください。";
+          break;
+        case 'auth/weak-password':
+          message = "パスワードが短すぎます（6文字以上必要です）。";
+          break;
+        default:
+          message = error.message || message;
+      }
+      
       toast({ 
         variant: "destructive", 
-        title: "エラーが発生しました", 
-        description: error.message === 'Firebase: Error (auth/email-already-in-use).' 
-          ? 'このメールアドレスは既に登録されています。' 
-          : 'メールアドレスまたはパスワードが正しくありません。'
+        title: "認証エラー", 
+        description: message
       });
     } finally {
       setIsLoading(false);
@@ -86,14 +103,24 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       toast({ title: "ログイン成功", description: "Googleアカウントでログインしました。" });
       onOpenChange(false);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "エラー", description: "Googleログインに失敗しました。" });
+      console.error("Google Auth Error:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "ログイン失敗", 
+        description: "Googleログインをキャンセルしたか、エラーが発生しました。" 
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => {
+      if (!isLoading) {
+        onOpenChange(val);
+        if (!val) reset();
+      }
+    }}>
       <DialogContent className="sm:max-w-[400px] rounded-[2rem] border-white/10 glass-panel">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl font-black text-center">
@@ -120,6 +147,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                     placeholder="山田 太郎" 
                     {...register('displayName')} 
                     className="bg-secondary/30 rounded-full pl-10"
+                    disabled={isLoading}
                   />
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     <UserPlus className="w-4 h-4" />
@@ -138,6 +166,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                   placeholder="name@example.com" 
                   {...register('email')} 
                   className="bg-secondary/30 rounded-full pl-10"
+                  disabled={isLoading}
                 />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   <Mail className="w-4 h-4" />
@@ -155,6 +184,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                   placeholder="••••••••" 
                   {...register('password')} 
                   className="bg-secondary/30 rounded-full pl-10"
+                  disabled={isLoading}
                 />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   <Lock className="w-4 h-4" />

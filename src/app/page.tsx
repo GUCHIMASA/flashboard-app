@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -26,11 +25,11 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 
-// 管理者のメールアドレス
+// 管理者のメールアドレス（ご自身のものに書き換えてください）
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
@@ -43,7 +42,9 @@ export default function Home() {
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = useMemo(() => {
+    return user && user.email === ADMIN_EMAIL;
+  }, [user]);
 
   const sourcesQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -182,7 +183,11 @@ export default function Home() {
         activeCategory={activeCategory as any} 
         selectedSourceName={selectedSourceName}
         onSelectSource={handleSourceSelect}
-        onDeleteSource={(id) => deleteDoc(doc(db!, 'users', user!.uid, 'sources', id))}
+        onDeleteSource={(id) => {
+          if (db && user) {
+            deleteDoc(doc(db, 'users', user.uid, 'sources', id));
+          }
+        }}
         sources={allSources}
         onAddSource={() => setIsAddSourceOpen(true)}
       />
@@ -345,7 +350,9 @@ export default function Home() {
             toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" });
             return;
           }
-          addDoc(collection(db!, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
+          if (db) {
+            addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
+          }
         }}
       />
     </div>
