@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink, Tag } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,7 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ article }: FeedCardProps) {
-  const { user } = user ? useUser() : { user: null };
+  const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(false);
