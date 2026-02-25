@@ -65,11 +65,19 @@ export default function Home() {
     }))
   ], [customSources]);
 
+  // 初期インデックスエラーを避けるため、最初は orderBy を含めないシンプルなクエリを使用
   const articlesQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, 'articles'), limit(50));
+    return query(collection(db, 'articles'), limit(100));
   }, [db]);
   const { data: firestoreArticles = [], loading: articlesLoading, error: articlesError } = useCollection(articlesQuery);
+
+  // デバッグ用: 取得されたデータをログに出力
+  useEffect(() => {
+    if (firestoreArticles.length > 0) {
+      console.log(`Fetched ${firestoreArticles.length} articles from Firestore`);
+    }
+  }, [firestoreArticles]);
 
   const bookmarksQuery = useMemo(() => {
     if (!db || !user) return null;
@@ -92,6 +100,7 @@ export default function Home() {
 
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : (firestoreArticles as Article[]);
 
+  // クライアント側で最新順にソート
   const sortedArticles = useMemo(() => {
     return [...displayArticles].sort((a, b) => 
       new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
@@ -262,9 +271,9 @@ export default function Home() {
           {articlesError && (
             <Alert variant="destructive" className="rounded-2xl border-destructive/20 bg-destructive/5">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>システムエラー</AlertTitle>
+              <AlertTitle>Firestore Error</AlertTitle>
               <AlertDescription>
-                データの読み込みに失敗しました。{articlesError.message}
+                {articlesError.message}
               </AlertDescription>
             </Alert>
           )}

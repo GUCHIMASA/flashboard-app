@@ -1,14 +1,13 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 記事は全ユーザーが読み取り可能
+    // 記事は全ユーザーが読み取り可能。同期のために書き込みも許可。
     match /articles/{articleId} {
       allow read: if true;
-      allow write: if true; // 開発・同期用
+      allow write: if true;
     }
     
-    // ユーザー個別のデータ（自分自身のみ）
+    // ユーザー個別のデータ（認証済みユーザーのみ）
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
       
