@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -5,15 +6,13 @@ import { Search, RefreshCw, Bookmark, ArrowRight, CheckCircle2, WifiOff, Calenda
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
-import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
-import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useFirestore, useCollection, useUser } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
@@ -24,12 +23,13 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
+import Header from '@/components/header';
+import { useAuth } from '@/contexts/auth';
 
-// 管理者のメールアドレス（ご自身のものに書き換えてください）
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
-  const { user, loading: userLoading } = useUser();
+  const { user, loading: userLoading } = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
@@ -46,15 +46,15 @@ export default function Home() {
     return user && user.email === ADMIN_EMAIL;
   }, [user]);
 
-  const sourcesQuery = useMemo(() => {
+  const sourcesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'sources');
   }, [db, user]);
-  const { data: customSources = [] } = useCollection(sourcesQuery);
+  const { data: customSources } = useCollection(sourcesQuery);
 
   const allSources = useMemo(() => [
     ...INITIAL_SOURCES, 
-    ...customSources.map(s => ({
+    ...(customSources || []).map((s: any) => ({
       id: s.id,
       name: s.name,
       url: s.url,
@@ -62,19 +62,19 @@ export default function Home() {
     }))
   ], [customSources]);
 
-  const articlesQuery = useMemo(() => {
+  const articlesQuery = useMemoFirebase(() => {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
   }, [db]);
-  const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
+  const { data: firestoreArticles, loading: articlesLoading } = useCollection(articlesQuery);
 
-  const bookmarksQuery = useMemo(() => {
+  const bookmarksQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
   }, [db, user]);
-  const { data: bookmarkedItems = [] } = useCollection(bookmarksQuery);
+  const { data: bookmarkedItems } = useCollection(bookmarksQuery);
 
-  const bookmarkedArticles: Article[] = bookmarkedItems.map(b => ({
+  const bookmarkedArticles: Article[] = (bookmarkedItems || []).map((b: any) => ({
     id: b.id,
     title: b.title || '無題',
     content: b.content || '',
@@ -88,7 +88,7 @@ export default function Home() {
   }));
 
   const normalizedArticles = useMemo(() => {
-    return (firestoreArticles as any[]).map(a => {
+    return ((firestoreArticles as any[]) || []).map(a => {
       let dateStr = a.publishedAt;
       if (!dateStr && a.createdAt?.toDate) {
         dateStr = a.createdAt.toDate().toISOString();
@@ -189,52 +189,11 @@ export default function Home() {
           }
         }}
         sources={allSources}
-        onAddSource={() => setIsAddSourceOpen(true)}
+        onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" })}
       />
 
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-40 w-full glass-panel px-4 md:px-8 h-16 md:h-24 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger className="hover:bg-primary/10" />
-            <div className="flex flex-col">
-              <h2 className="font-headline text-lg md:text-2xl font-black uppercase tracking-tight text-foreground">
-                {selectedSourceName || categoryNames[activeCategory] || 'ストリーム'}
-              </h2>
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", isRefreshing ? "bg-accent animate-spin" : "bg-primary animate-pulse")} />
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                  最終同期: {latestUpdateDate ? format(latestUpdateDate, 'MM/dd HH:mm') : '--/-- --:--'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="relative hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input 
-                className="pl-10 bg-secondary/50 border-none w-64 rounded-full h-10" 
-                placeholder="インサイトを検索..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <ThemeToggle />
-            {isAdmin && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                className="rounded-full h-10 w-10 border-white/10"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-              >
-                <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
-              </Button>
-            )}
-            <UserMenu />
-          </div>
-        </header>
-
+        <Header />
         <div className="flex-1 p-4 md:p-10 space-y-10 max-w-[1800px] mx-auto w-full">
           {activeCategory === 'All' && !selectedSourceName && heroArticles.length > 0 && (
             <section className="relative">

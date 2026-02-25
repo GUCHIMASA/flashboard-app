@@ -5,6 +5,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AuthProvider } from '@/contexts/auth';
 
 export const metadata: Metadata = {
   title: 'AI Synapse | インテリジェントAIダッシュボード',
@@ -30,12 +31,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <FirebaseClientProvider>
-            <SidebarProvider defaultOpen={true}>
-              {children}
-              <Toaster />
-            </SidebarProvider>
-          </FirebaseClientProvider>
+          <AuthProvider>
+            <FirebaseClientProvider>
+              <SidebarProvider defaultOpen={true}>
+                {children}
+                <Toaster />
+              </SidebarProvider>
+            </FirebaseClientProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
