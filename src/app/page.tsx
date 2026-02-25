@@ -9,6 +9,7 @@ import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
 import { ThemeToggle } from '@/components/dashboard/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,12 +19,11 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { firebaseConfig } from '@/firebase/config';
 
 export default function Home() {
@@ -62,7 +62,7 @@ export default function Home() {
     if (!db) return null;
     return query(collection(db, 'articles'), limit(100));
   }, [db]);
-  const { data: firestoreArticles = [], loading: articlesLoading, error: articlesError } = useCollection(articlesQuery);
+  const { data: firestoreArticles = [], loading: articlesLoading } = useCollection(articlesQuery);
 
   // ブックマークの取得
   const bookmarksQuery = useMemo(() => {
@@ -164,7 +164,7 @@ export default function Home() {
   const categoryNames: Record<string, string> = {
     'All': 'すべて',
     'Reliable': '信頼ソース',
-    'Discovery': 'ディスカバリー',
+    'Discovery': '発見',
     'Bookmarks': '保存済み'
   };
 
@@ -248,7 +248,7 @@ export default function Home() {
                             {article.title}
                           </h1>
                           <Button asChild className="rounded-full px-10 h-14 font-black text-lg neo-blur">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">インサイトを表示 <ArrowRight className="ml-2 w-5 h-5" /></a>
+                            <a href={article.link} target="_blank" rel="noopener noreferrer">全文を読む <ArrowRight className="ml-2 w-5 h-5" /></a>
                           </Button>
                         </div>
                       </div>
