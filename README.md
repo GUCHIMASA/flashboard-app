@@ -9,48 +9,45 @@ AIを活用した情報の集約と要約を実現する次世代ダッシュボ
 ## 2. 主要機能の仕様
 
 ### 2.1 AI 要約（Quick Insight）
-- **動作**: 英語の記事タイトルを自然な日本語に翻訳し、本文から最も重要な3つのポイントを抽出して箇条書き（・）で要約します。
+- **動作**: 英語の記事タイトルを自然な日本語に翻訳し、本文から重要なポイントを3つ抽出して箇条書き（・）で要約します。
 - **エンジン**: Google Genkit + Gemini 2.5 Flash Lite。
-- **仕様**: `summarizeAggregatedArticleContent` フローにより、翻訳と要約を一括処理。AIが失敗した場合は、データベースの整合性を守るため保存をスキップし、次回の同期で再試行します。
+- **仕様**: `summarizeAggregatedArticleContent` フローにより、翻訳と要約を一括処理。AIが失敗した場合は保存をスキップし、次回の同期で再試行します。
 
 ### 2.2 リアルタイム同期（Sync RSS）
-- **RSS取得**: `rss-parser` を使用し、登録されたソースから最新記事を取得。
-- **画像抽出**: `enclosure` タグ、`media:content`、本文中の `<img>` タグから最適な画像を自動抽出。見つからない場合は独自のプレースホルダー画像を生成。
-- **同期ロジック**: 既に日本語化されている記事はスキップし、新規または未処理の記事のみをAIで処理します。
-- **レート制限**: APIの負荷を抑えるため、記事1件ごとに2秒の待機時間を設けています。
+- **RSS取得**: `rss-parser` を使用。
+- **画像抽出**: `enclosure`、`media:content`、本文中の `<img>` タグから抽出。
+- **同期ロジック**: 既に日本語化されている記事はスキップ。新規または未処理の記事のみAI処理。
+- **レート制限**: 記事1件ごとに2秒の待機時間を設定。
 
 ### 2.3 管理者権限（Admin Controls）
-- **制限**: 記事の同期（INITIALIZE SYNC）は、特定のメールアドレスを持つ管理者のみが実行可能です。
-- **UI**: 管理者としてログインしている場合のみ、右上に更新ボタンが表示されます。
-- **サーバー側検証**: Genkitフロー内でも実行ユーザーのメールアドレスを検証し、不正なリクエストをブロックします。
+- **制限**: 同期の実行は、特定のメールアドレスを持つ管理者のみ可能です。
+- **UI**: 管理者としてログインしている場合のみ、更新ボタンが表示されます。
 
-### 2.4 インタラクティブUI
-- **デザイン**: ガラス質感（Glassmorphism）とネオンアクセントを採用。
-- **テーマ**: `next-themes` によるライト/ダーク/システム設定への対応。
-- **レスポンシブ**: モバイル対応のサイドバー（ShadCN Sidebar）を搭載。
+### 2.4 定期自動同期（Cloud Scheduler）
+- **動作**: Firebase Cloud Schedulerにより、3時間ごとに自動で最新記事を取得・翻訳します。
+- **スケジュール**: `0 */3 * * *` (3時間おき)
+- **エンドポイント**: `/api/cron/sync?secret=YOUR_CRON_SECRET`
+- **セキュリティ**: 環境変数 `CRON_SECRET` を使用したトークン認証。
 
 ## 3. 開発スタック
-- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS
-- **UI Components**: ShadCN UI, Lucide Icons
-- **AI Engine**: Google Genkit (@genkit-ai/google-genai) / Gemini 2.5 Flash Lite
-- **Backend**: Firebase (Firestore, Authentication)
+- **Frontend**: Next.js 15, React 19, Tailwind CSS
+- **AI Engine**: Google Genkit / Gemini 2.5 Flash Lite
+- **Backend**: Firebase (Firestore, Auth, App Hosting)
 
-## 4. セットアップと環境変数
+## 4. セットアップ
 `.env` ファイルに以下の設定が必要です。
 
 ```env
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY=...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+# Firebase
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=...
-
-# Google AI (Gemini)
+# Google AI
 GOOGLE_GENAI_API_KEY=...
+# 自動同期用シークレット
+CRON_SECRET=your_secure_random_string
 ```
 
-## 5. 開発者向けの注意点
-- **環境変数の反映**: `.env` を変更した後は、Next.jsの再ビルド（またはファイルの微修正によるホットリロード）が必要です。
-- **Firestoreルール**: `firestore.rules` で記事の読み取りは誰でも可能ですが、書き込みは認証済みユーザー、特に個別のユーザーデータは本人にのみ制限されています。
+### 自動同期（Cron）の設定手順
+1. Google Cloud Console または Firebase Console から **Cloud Scheduler** を開きます。
+2. 新しいジョブを作成し、頻度を `0 */3 * * *` に設定します。
+3. ターゲットを `HTTP` とし、URLに `https://your-app-url.com/api/cron/sync?secret=あなたのCRON_SECRET` を入力します。
+4. HTTPメソッドを `GET` に設定して保存します。

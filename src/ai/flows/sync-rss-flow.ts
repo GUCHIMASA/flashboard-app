@@ -12,8 +12,8 @@ import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
 
-// 管理者のメールアドレス（ここもご自身のものに書き換えてください）
-const ADMIN_EMAIL = "admin@example.com";
+// 管理者のメールアドレス
+const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 const parser = new Parser({
   customFields: {
@@ -59,7 +59,7 @@ const syncRssFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 管理者チェック
+    // 管理者チェック（手動・自動共通）
     if (input.requesterEmail !== ADMIN_EMAIL) {
       throw new Error('管理者のみがこの記事の更新を実行できます。');
     }
@@ -70,13 +70,13 @@ const syncRssFlow = ai.defineFlow(
     const errors: string[] = [];
     let processedSources = 0;
 
-    console.log(`[AI Key Check] Execution started: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
+    console.log(`[AI Key Check] Execution started. API Key exists: ${!!process.env.GOOGLE_GENAI_API_KEY}`);
 
     for (const source of input.sources) {
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`[RSS Sync] 取得中: ${source.name}`);
+        console.log(`[RSS Sync] Fetching: ${source.name}`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
@@ -106,11 +106,13 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           const existingData = existingSnapshot.docs[0]?.data();
+          // タイトルが英語のまま、または要約がない場合は処理対象
           const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
           const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish;
 
           if (needsProcessing) {
             try {
+              // 統一された要約・翻訳フローを呼び出し
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
                 content: (item.contentSnippet || item.content || '').substring(0, 1500)
@@ -140,10 +142,12 @@ const syncRssFlow = ai.defineFlow(
                 }
               }
             } catch (e: any) {
-              console.error(`[AI Skip] ${item.title}: 保存をスキップ。`, e.message);
+              // AI処理が失敗した場合は保存をスキップ（次回の同期で再試行）
+              console.error(`[AI Skip] ${item.title}: AI processing failed. Skiping save.`, e.message);
             }
           }
-          // レート制限
+          
+          // レート制限対策: 1件ごとに2秒待機
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (e: any) {

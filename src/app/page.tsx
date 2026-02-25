@@ -25,8 +25,8 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { firebaseConfig } from '@/firebase/config';
 
-// 管理者のメールアドレス（ここをご自身のものに書き換えてください）
-const ADMIN_EMAIL = "admin@example.com";
+// 管理者のメールアドレス
+const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
   const { user } = useUser();
