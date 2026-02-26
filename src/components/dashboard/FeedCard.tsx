@@ -13,7 +13,6 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 
 interface FeedCardProps {
   article: Article;
@@ -71,7 +70,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // シェアURLを個別記事ページに変更
+    // シェアURLは個別記事ページを指す（外部流入用）
     const shareUrl = `${window.location.origin}/article/${article.id}`;
     const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
@@ -166,7 +165,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
           </CardContent>
 
           <CardFooter className="p-4 pt-2 flex flex-col items-stretch mt-auto border-t border-border/10">
-            <div className='flex items-center justify-end w-full'>
+            <div className='flex items-center justify-between w-full gap-2'>
               <div className="flex items-center gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
                   {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
@@ -175,12 +174,10 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>
-            </div>
-            <div className='flex items-center justify-stretch w-full gap-2 pt-2'>
-              <Button asChild variant="default" size="sm" className="w-full h-10 font-black" onClick={(e) => e.stopPropagation()}>
-                <Link href={`/article/${article.id}`} className="flex items-center gap-1">
-                  詳細を読む <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button asChild variant="default" size="sm" className="flex-1 h-9 font-black" onClick={(e) => e.stopPropagation()}>
+                <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                  元記事を読む <ExternalLink className="h-4 w-4" />
+                </a>
               </Button>
             </div>
           </CardFooter>
@@ -189,3 +186,4 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
     </Card>
   );
 }
+
