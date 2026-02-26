@@ -82,8 +82,8 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
       className={cn(
         "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group cursor-pointer",
         isActive 
-          ? "ring-2 ring-primary/40 shadow-xl z-20 scale-[1.01] opacity-100" 
-          : "opacity-60 hover:opacity-100 hover:border-border/80"
+          ? "ring-2 ring-primary/40 shadow-xl z-20 opacity-100" 
+          : "opacity-70 hover:opacity-100 hover:border-border/80"
       )}
     >
       <CardHeader className={cn(
@@ -99,7 +99,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 <Globe className="w-3 h-3 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[10px] font-black text-primary truncate uppercase tracking-tight">
+            <span className="text-[11px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
@@ -130,64 +130,66 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className={cn(
-        "px-4 transition-all duration-300 overflow-hidden",
-        isActive ? "pb-4 opacity-100" : "max-h-0 p-0 opacity-0 pointer-events-none"
+      <div className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        isActive ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none"
       )}>
-        <div className="space-y-4 pt-2">
-          {article.act && (
-            <div className="flex items-start gap-2 text-sm leading-relaxed">
-              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                <TbWaveSawTool className="w-4 h-4" />
-              </div>
-              <p className="font-bold flex-1">▲{article.act}</p>
+        <div className="overflow-hidden">
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-4 pt-2 border-t border-border/10">
+              {article.act && (
+                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <TbWaveSawTool className="w-4 h-4" />
+                  </div>
+                  <p className="font-bold flex-1 text-base">▲{article.act}</p>
+                </div>
+              )}
+              {article.context && (
+                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <IoReorderThree className="w-4 h-4" />
+                  </div>
+                  <p className="text-foreground/90 flex-1">●{article.context}</p>
+                </div>
+              )}
+              {article.effect && (
+                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <PiWavesBold className="w-4 h-4" />
+                  </div>
+                  <p className="text-foreground/90 flex-1">■{article.effect}</p>
+                </div>
+              )}
             </div>
-          )}
-          {article.context && (
-            <div className="flex items-start gap-2 text-sm leading-relaxed">
-              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                <IoReorderThree className="w-4 h-4" />
-              </div>
-              <p className="text-foreground/90 flex-1">●{article.context}</p>
-            </div>
-          )}
-          {article.effect && (
-            <div className="flex items-start gap-2 text-sm leading-relaxed">
-              <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                <PiWavesBold className="w-4 h-4" />
-              </div>
-              <p className="text-foreground/90 flex-1">■{article.effect}</p>
-            </div>
-          )}
-        </div>
-      </CardContent>
+          </CardContent>
 
-      {isActive && (
-        <CardFooter className="p-4 pt-2 flex flex-col items-stretch mt-auto border-t border-border/10">
-          <div className='flex items-center justify-end w-full'>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
-                {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
+          <CardFooter className="p-4 pt-2 flex flex-col items-stretch mt-auto border-t border-border/10">
+            <div className='flex items-center justify-end w-full'>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
+                  {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleShare}>
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className='flex items-center justify-stretch w-full gap-2 pt-2'>
+              <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
+                <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                  記事を読む <ExternalLink className="h-4 w-4" />
+                </a>
               </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleShare}>
-                <Share2 className="h-5 w-5" />
+              <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
+                <a href={`https://translate.google.com/translate?u=${article.link}&sl=en&tl=ja`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                  全文翻訳 <ExternalLink className="h-4 w-4" />
+                </a>
               </Button>
             </div>
-          </div>
-          <div className='flex items-center justify-stretch w-full gap-2 pt-2'>
-            <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
-              <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                記事を読む <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-            <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
-              <a href={`https://translate.google.com/translate?u=${article.link}&sl=en&tl=ja`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                全文翻訳 <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-          </div>
-        </CardFooter>
-      )}
+          </CardFooter>
+        </div>
+      </div>
     </Card>
   );
 }
