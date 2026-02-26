@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X } from 'lucide-react';
+import { Bookmark, Calendar, Info, Database, Zap } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -20,10 +20,9 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 
-// 管理者用メールアドレス (このアドレスのユーザーのみが同期を実行可能)
+// 管理者用メールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
@@ -40,8 +39,6 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // アクティブな記事のIDを管理 (タップで切り替え)
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
 
   const sourcesQuery = useMemoFirebase(() => {
@@ -128,28 +125,20 @@ export default function Home() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     
-    // 管理者権限チェック
     if (user?.email !== ADMIN_EMAIL) {
-      toast({ 
-        variant: "destructive", 
-        title: "権限エラー", 
-        description: "この操作を実行する権限がありません。" 
-      });
+      toast({ variant: "destructive", title: "権限エラー", description: "管理者のみ実行可能です。" });
       return;
     }
 
     setIsRefreshing(true);
-    toast({ title: "同期を開始しました", description: "最新情報を翻訳・要約中..." });
+    toast({ title: "同期を開始しました", description: "最新情報を処理中..." });
 
     try {
       const result = await syncRss({ 
         sources: allSources,
         requesterEmail: user?.email || ''
       });
-      toast({ 
-        title: result.addedCount > 0 || result.updatedCount > 0 ? "同期完了" : "更新なし", 
-        description: `${result.addedCount + result.updatedCount}件の記事を処理しました。` 
-      });
+      toast({ title: "同期完了", description: `${result.addedCount + result.updatedCount}件処理しました。` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "同期エラー", description: error.message });
     } finally {
@@ -179,7 +168,7 @@ export default function Home() {
           }
         }}
         sources={allSources}
-        onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" })}
+        onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です" })}
       />
 
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
@@ -238,9 +227,8 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                {/* 管理者のみ同期ボタンを表示 */}
                 {user?.email === ADMIN_EMAIL && (
-                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "同期中..." : "最新記事を取得"}
                   </Button>
                 )}
@@ -272,14 +260,13 @@ export default function Home() {
               <div className="py-20 text-center bg-muted/10 rounded-3xl border border-dashed border-muted">
                 <Info className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-bold mb-1">該当する記事はありません</h3>
-                <p className="text-xs text-muted-foreground mb-6">条件を変更してお試しください。</p>
               </div>
             )}
           </section>
 
           <footer className="py-12 border-t border-border/50 text-center space-y-4">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              © 2024 AI SYNAPSE - Next-Gen Intelligence Dashboard
+              © 2024 AI SYNAPSE
             </p>
             <div className="flex items-center justify-center gap-6">
               <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">利用規約</Link>

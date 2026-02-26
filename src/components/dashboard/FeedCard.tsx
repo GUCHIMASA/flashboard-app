@@ -70,7 +70,6 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // シェアURLは個別記事ページを指す（外部流入用）
     const shareUrl = `${window.location.origin}/article/${article.id}`;
     const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;

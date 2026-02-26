@@ -6,7 +6,7 @@ import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, ExternalLink, Calendar, Share2, Globe, Bookmark, Zap, Search, Waves } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Share2, Globe, Zap, Search, Waves } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
@@ -16,7 +16,6 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-// サーバーサイドでのデータ取得
 async function getArticle(id: string) {
   const { firestore } = initializeFirebase();
   const docRef = doc(firestore, 'articles', id);
@@ -73,7 +72,7 @@ export default async function ArticlePage({ params }: Props) {
     );
   }
 
-  const shareUrl = `https://ai-synapse.web.app/article/${id}`; 
+  const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ''}/article/${id}`; 
   const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(article.translatedTitle || article.title)}&url=${encodeURIComponent(shareUrl)}`;
   const translateUrl = `https://translate.google.com/translate?sl=auto&tl=ja&u=${encodeURIComponent(article.link)}`;
 
@@ -85,7 +84,6 @@ export default async function ArticlePage({ params }: Props) {
           <ArrowLeft className="w-4 h-4" /> タイムラインに戻る
         </Link>
 
-        {/* 1. 記事画像 */}
         <div className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-2xl border border-border/50">
           <Image 
             src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/600`} 
@@ -97,13 +95,11 @@ export default async function ArticlePage({ params }: Props) {
         </div>
 
         <div className="space-y-6">
-          {/* 2. 日本語タイトル */}
           <h1 className="text-3xl md:text-5xl font-black leading-tight tracking-tighter">
             {article.translatedTitle || article.title}
           </h1>
 
           <div className="flex flex-wrap items-center gap-4">
-            {/* 3. タグ */}
             <div className="flex flex-wrap gap-2">
               {article.tags?.map((tag: string) => (
                 <Badge key={tag} variant="secondary" className="rounded-full px-3 py-1 font-bold text-xs bg-primary/10 text-primary border-none">
@@ -114,7 +110,6 @@ export default async function ArticlePage({ params }: Props) {
             
             <Separator orientation="vertical" className="h-4 hidden sm:block" />
 
-            {/* 4. 公開日時（相対表示） */}
             <div className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground">
               <Calendar className="w-4 h-4" />
               {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
@@ -122,7 +117,6 @@ export default async function ArticlePage({ params }: Props) {
           </div>
         </div>
 
-        {/* ACE形式セクション */}
         <div className="space-y-6 pt-4">
           <div className="group bg-primary/5 p-6 rounded-[2rem] border border-primary/10 hover:border-primary/30 transition-all">
             <div className="flex items-center gap-3 mb-4">

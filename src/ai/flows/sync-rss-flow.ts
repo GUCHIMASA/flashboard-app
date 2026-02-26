@@ -1,10 +1,5 @@
+
 'use server';
-/**
- * @fileOverview RSSフィードを同期し、AI要約を生成してFirestoreに保存するフロー。
- * 
- * 主要なAI企業（Anthropic, Meta, OpenAIなど）の多様なRSS形式から
- * 画像とコンテンツを確実に抽出するように強化されています。
- */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
@@ -68,38 +63,24 @@ const syncRssFlow = ai.defineFlow(
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`[RSS Sync] Fetching: ${source.name} (${source.url})`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 最新3件を処理対象にする
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
-          // 画像抽出の高度なロジック
           let extractedImageUrl = '';
-          
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
-          } 
-          else if (item.mediaContent && item.mediaContent.length > 0) {
+          } else if (item.mediaContent && item.mediaContent.length > 0) {
             const media = item.mediaContent[0];
             extractedImageUrl = media.$?.url || media.url || '';
-          } 
-          else if (item.mediaThumbnail) {
+          } else if (item.mediaThumbnail) {
             extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
           } 
-
-          if (!extractedImageUrl) {
-            const htmlContent = item.contentEncoded || item.content || item.description || '';
-            const imgMatch = htmlContent.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch && imgMatch[1]) {
-              extractedImageUrl = imgMatch[1];
-            }
-          }
 
           const articlesRef = collection(firestore, 'articles');
           const q = query(articlesRef, where('link', '==', link));
@@ -150,12 +131,11 @@ const syncRssFlow = ai.defineFlow(
                 }
               }
             } catch (e: any) {
-              console.warn(`[AI Skip] "${item.title}": AI processing failed.`, e.message);
+              console.warn(`[AI Skip] "${item.title}"`, e.message);
             }
           }
         }
       } catch (e: any) {
-        console.error(`[RSS Error] Source: ${source.name}`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }
