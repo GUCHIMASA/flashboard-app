@@ -151,7 +151,8 @@ export default function Home() {
   };
 
   const handleSourceSelect = (source: FeedSource | 'All') => {
-    if (source === 'All') {
+    // すでに選択されているソースをクリックした場合、または 'All' をクリックした場合はリセット
+    if (source === 'All' || (source !== 'All' && selectedSourceName === source.name)) {
       setActiveCategory('All');
       setSelectedSourceName(null);
     } else {
