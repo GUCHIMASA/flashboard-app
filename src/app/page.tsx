@@ -128,7 +128,7 @@ export default function Home() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     
-    // 厳格な権限チェック
+    // 管理者権限チェック
     if (user?.email !== ADMIN_EMAIL) {
       toast({ 
         variant: "destructive", 
