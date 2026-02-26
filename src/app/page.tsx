@@ -224,9 +224,11 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
-                  {isRefreshing ? "同期中..." : "最新記事を取得"}
-                </Button>
+                {user && (
+                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? "同期中..." : "最新記事を取得"}
+                  </Button>
+                )}
               </div>
             </div>
 
