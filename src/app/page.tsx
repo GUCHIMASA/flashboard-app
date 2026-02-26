@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -21,15 +20,6 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
-
-const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
-
-const AVAILABLE_TAGS = [
-  "新モデル", "ツール", "研究・論文", "ビジネス", "規制・政策", "セキュリティ",
-  "OpenAI", "Anthropic", "Google", "Meta", "Microsoft", "その他企業",
-  "新リリース", "資金調達", "提携", "障害"
-];
 
 export default function Home() {
   const { user } = useUser();
@@ -48,10 +38,6 @@ export default function Home() {
 
   // アクティブな記事のIDを管理 (タップで切り替え)
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
-
-  const isAdmin = useMemo(() => {
-    return user && user.email === ADMIN_EMAIL;
-  }, [user]);
 
   const sourcesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -75,26 +61,6 @@ export default function Home() {
   }, [db]);
   const { data: firestoreArticles, loading: articlesLoading } = useCollection(articlesQuery);
 
-  const bookmarksQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return collection(db, 'users', user.uid, 'bookmarks');
-  }, [db, user]);
-  const { data: bookmarkedItems } = useCollection(bookmarksQuery);
-
-  const bookmarkedArticles: Article[] = (bookmarkedItems || []).map((b: any) => ({
-    id: b.id,
-    title: b.title || '無題',
-    content: b.content || '',
-    summary: b.summary,
-    sourceName: b.sourceName || '不明',
-    sourceUrl: '#',
-    publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Bookmarks', 
-    link: b.link || b.url || '#',
-    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
-    tags: b.tags || []
-  }));
-
   const normalizedArticles = useMemo(() => {
     return ((firestoreArticles as any[]) || []).map(a => {
       let dateStr = a.publishedAt;
@@ -117,6 +83,28 @@ export default function Home() {
     });
   }, [firestoreArticles]);
 
+  const bookmarkedItemsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return collection(db, 'users', user.uid, 'bookmarks');
+  }, [db, user]);
+  const { data: bookmarkedItems } = useCollection(bookmarkedItemsQuery);
+
+  const bookmarkedArticles: Article[] = (bookmarkedItems || []).map((b: any) => ({
+    id: b.id,
+    title: b.title || '無題',
+    translatedTitle: b.translatedTitle,
+    content: b.content || '',
+    act: b.act,
+    context: b.context,
+    effect: b.effect,
+    sourceName: b.sourceName || '不明',
+    publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    category: 'Bookmarks', 
+    link: b.link || b.url || '#',
+    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
+    tags: b.tags || []
+  }));
+
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
   const filteredArticles = useMemo(() => {
@@ -132,14 +120,10 @@ export default function Home() {
     });
   }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
-  const heroArticles = useMemo(() => {
-    return normalizedArticles.slice(0, 5);
-  }, [normalizedArticles]);
-
   const handleRefresh = async () => {
-    if (isRefreshing || !isAdmin) return;
+    if (isRefreshing) return;
     setIsRefreshing(true);
-    toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約・タグ付け中..." });
+    toast({ title: "同期を開始しました", description: "最新情報を翻訳・要約中..." });
 
     try {
       const result = await syncRss({ 
@@ -185,11 +169,11 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header />
         <div className="flex-1 p-4 md:p-8 space-y-4 max-w-[1600px] mx-auto w-full">
-          {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
+          {activeCategory === 'All' && !selectedSourceName && !selectedTag && normalizedArticles.length > 0 && (
             <section className="relative overflow-hidden rounded-3xl shadow-xl mb-6">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
-                  {heroArticles.map((article) => (
+                  {normalizedArticles.slice(0, 5).map((article) => (
                     <CarouselItem key={article.id}>
                       <div className="relative h-[250px] md:h-[400px] w-full overflow-hidden">
                         <Image 
@@ -209,7 +193,7 @@ export default function Home() {
                             </span>
                           </div>
                           <h1 className="text-2xl md:text-4xl font-black mb-3 text-white line-clamp-2 leading-tight">
-                            {article.title}
+                            {article.translatedTitle || article.title}
                           </h1>
                           <Button asChild size="sm" className="rounded-full px-4 h-8 text-xs font-bold">
                             <a href={article.link} target="_blank" rel="noopener noreferrer">
@@ -243,36 +227,10 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                {isAdmin && activeCategory === 'All' && (
-                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "同期中..." : "最新記事を取得"}
-                  </Button>
-                )}
+                <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                  {isRefreshing ? "同期中..." : "最新記事を取得"}
+                </Button>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <TagIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-              <ScrollArea className="w-full">
-                <div className="flex flex-nowrap gap-2 pb-2">
-                  {selectedTag && (
-                    <Badge variant="default" className="cursor-pointer bg-primary gap-1 text-[11px] h-7 shrink-0" onClick={() => setSelectedTag(null)}>
-                      #{selectedTag} <X className="w-3 h-3" />
-                    </Badge>
-                  )}
-                  {AVAILABLE_TAGS.filter(t => t !== selectedTag).map(tag => (
-                    <Badge 
-                      key={tag} 
-                      variant="outline" 
-                      className="cursor-pointer hover:bg-primary/10 border-muted text-[11px] h-7 text-muted-foreground shrink-0"
-                      onClick={() => setSelectedTag(tag)}
-                    >
-                      #{tag}
-                    </Badge>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
             </div>
 
             {articlesLoading && filteredArticles.length === 0 ? (
@@ -301,9 +259,6 @@ export default function Home() {
                 <Info className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-bold mb-1">該当する記事はありません</h3>
                 <p className="text-xs text-muted-foreground mb-6">条件を変更してお試しください。</p>
-                <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
-                  フィルターをクリア
-                </Button>
               </div>
             )}
           </section>

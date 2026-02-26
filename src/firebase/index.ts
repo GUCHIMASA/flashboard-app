@@ -10,14 +10,11 @@ import { getFirestore } from 'firebase/firestore'
 export function initializeFirebase() {
   let firebaseApp: FirebaseApp;
 
-  if (!getApps().length) {
-    try {
-      // 本番環境（App Hosting等）では引数なしで環境変数を参照
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // フォールバックとして設定オブジェクトを使用
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+  // 既に初期化されているかチェック
+  const apps = getApps();
+  if (!apps.length) {
+    // サーバーサイド環境でも確実に動くよう、configを優先的に使用
+    firebaseApp = initializeApp(firebaseConfig);
   } else {
     firebaseApp = getApp();
   }

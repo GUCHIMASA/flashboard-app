@@ -1,35 +1,34 @@
-
 import { NextResponse } from 'next/server';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { INITIAL_SOURCES } from '@/app/lib/mock-data';
+
+export const maxDuration = 60; // 実行時間を60秒に延長
 
 /**
  * Cloud Schedulerから呼び出される自動同期用エンドポイント
  * 
  * セキュリティのため、環境変数 CRON_SECRET をクエリパラメータとして検証します。
- * 例: /api/cron/sync?secret=your_secret_key
  */
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
 
-  // セキュリティチェック: 環境変数が未設定の場合は安全のため実行を拒否
   if (!process.env.CRON_SECRET) {
     console.error('[Cron Error] CRON_SECRET environment variable is not set.');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
   if (!secret || secret !== process.env.CRON_SECRET) {
-    console.error('[Cron Error] Unauthorized access attempt with secret:', secret);
+    console.error('[Cron Error] Unauthorized access attempt.');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     console.log('[Cron Sync] Starting automated sync...');
     
-    // 管理者のメールアドレス（フロー内のバリデーションを通過させるために必要）
-    const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
+    // 管理者用のダミーメール
+    const ADMIN_EMAIL = 'admin@example.com';
 
     const result = await syncRss({
       sources: INITIAL_SOURCES.map(s => ({

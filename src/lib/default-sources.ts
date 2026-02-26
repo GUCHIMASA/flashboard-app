@@ -1,5 +1,3 @@
-// src/lib/default-sources.ts
-
 /**
  * アプリケーションのデフォルトニュースソースの定義
  */
@@ -20,4 +18,8 @@ export const defaultSources: DefaultSource[] = [
     name: "Meta AI Blog",
     url: "https://ai.meta.com/blog/rss/",
   },
+  {
+    name: "OpenAI Blog",
+    url: "https://openai.com/news/rss.xml",
+  }
 ];

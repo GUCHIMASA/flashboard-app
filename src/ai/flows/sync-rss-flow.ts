@@ -26,7 +26,7 @@ const parser = new Parser({
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   },
-  timeout: 20000, // ネットワーク遅延を考慮して長めに設定
+  timeout: 30000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -73,8 +73,8 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 直近5件まで処理対象を拡大
-        const items = feed.items.slice(0, 5);
+        // 最新3件を処理対象にする
+        const items = feed.items.slice(0, 3);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
@@ -83,21 +83,17 @@ const syncRssFlow = ai.defineFlow(
           // 画像抽出の高度なロジック
           let extractedImageUrl = '';
           
-          // 1. Enclosure (Anthropic など)
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
           } 
-          // 2. Media:content (Meta, OpenAI など)
           else if (item.mediaContent && item.mediaContent.length > 0) {
-            // 配列の最初、または $.url がある場合
             const media = item.mediaContent[0];
             extractedImageUrl = media.$?.url || media.url || '';
           } 
-          // 3. Media:thumbnail
           else if (item.mediaThumbnail) {
             extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
           } 
-          // 4. HTML content 内の img タグ抽出
+
           if (!extractedImageUrl) {
             const htmlContent = item.contentEncoded || item.content || item.description || '';
             const imgMatch = htmlContent.match(/<img[^>]+src="([^">]+)"/);
@@ -110,18 +106,16 @@ const syncRssFlow = ai.defineFlow(
           const q = query(articlesRef, where('link', '==', link));
           const existingSnapshot = await getDocs(q);
 
-          const existingData = existingSnapshot.docs[0]?.data();
-          // すでに存在し、かつAI要約(act)がある場合はスキップ
+          const existingData = existingSnapshot.empty ? null : existingSnapshot.docs[0].data();
           const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
             try {
-              // 本文のクリーンアップ
               const cleanContent = (item.contentSnippet || item.content || item.description || '')
                 .replace(/<[^>]*>?/gm, '')
                 .replace(/\s+/g, ' ')
                 .trim()
-                .substring(0, 2000);
+                .substring(0, 1500);
 
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
@@ -141,7 +135,7 @@ const syncRssFlow = ai.defineFlow(
                   tags: result.tags || [],
                   link: link, 
                   sourceName: source.name,
-                  publishedAt: item.isoDate || new Date().toISOString(),
+                  publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
                   imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
                   category: source.category,
                   updatedAt: serverTimestamp()
@@ -160,7 +154,6 @@ const syncRssFlow = ai.defineFlow(
               console.warn(`[AI Skip] "${item.title}": AI processing failed.`, e.message);
             }
           }
-          // レート制限への配慮
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (e: any) {
