@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from 'react';
@@ -45,7 +44,7 @@ interface DashboardSidebarProps {
 
 /**
  * 取得元のアイコンを管理するコンポーネント
- * 折りたたみ時の整列を保つためサイズを固定
+ * 折りたたみ時の中央配置を維持するため、サイズを lucide-react の標準アイコンに合わせる
  */
 const SourceIcon = ({ url, name, isActive }: { url: string; name: string; isActive?: boolean }) => {
   const getFaviconUrl = (url: string) => {
@@ -61,11 +60,11 @@ const SourceIcon = ({ url, name, isActive }: { url: string; name: string; isActi
 
   return (
     <div className={cn(
-      "w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 transition-colors",
+      "w-5 h-5 rounded-md overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 transition-colors",
       isActive && "border-primary/50 bg-primary/10"
     )}>
       {favicon ? (
-        <img src={favicon} alt={name} className="w-4 h-4 object-contain" />
+        <img src={favicon} alt={name} className="w-3.5 h-3.5 object-contain" />
       ) : (
         <Globe className="w-3.5 h-3.5 text-muted-foreground" />
       )}
