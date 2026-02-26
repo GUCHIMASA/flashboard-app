@@ -14,35 +14,33 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // ユーザープロファイルとその配下のデータ（ソース、ブックマーク）
+    // 1. articlesコレクション
+    // 読み取り：誰でも可能（未ログインでも）
+    // 書き込み：認証済みユーザーのみ
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // 2. usersコレクション / sources / bookmarks
+    // 読み取り・書き込み：本人のみ
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
+      // users/{userId}/sources/{sourceId}
       match /sources/{sourceId} {
         allow read, write: if isOwner(userId);
       }
       
+      // users/{userId}/bookmarks/{bookmarkId}
       match /bookmarks/{bookmarkId} {
         allow read, write: if isOwner(userId);
       }
 
-      // サブコレクション全体への再帰的な許可
+      // サブコレクション全体への再帰的な許可（本人のみ）
       match /{allPaths=**} {
         allow read, write: if isOwner(userId);
       }
-    }
-
-    // 収集された記事データ
-    match /articles/{articleId} {
-      // 誰でも閲覧可能
-      allow read: if true;
-      
-      // 書き込み: サーバーサイド（Cron/Server Actions）でのClient SDK使用に対応するため全許可
-      // 本番環境では特定のAPIキー検証やカスタムクレイムでの制限を推奨します
-      allow create, update: if true;
-      
-      // 削除は認証済みユーザーのみ
-      allow delete: if isSignedIn();
     }
   }
 }
