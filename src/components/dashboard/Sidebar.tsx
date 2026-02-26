@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -11,7 +12,9 @@ import {
   Globe,
   Trash2,
   FileText,
-  Lock
+  Lock,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import { Category, FeedSource } from '@/app/lib/types';
 import { useUser } from '@/firebase';
@@ -32,6 +35,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
@@ -40,12 +45,12 @@ interface DashboardSidebarProps {
   onDeleteSource?: (sourceId: string) => void;
   sources: FeedSource[];
   onAddSource: () => void;
+  articleCount?: number;
+  isRefreshing?: boolean;
+  onRefresh?: () => void;
+  isAdmin?: boolean;
 }
 
-/**
- * 取得元のアイコンを管理するコンポーネント
- * 折りたたみ時の中央配置を維持するため、サイズを lucide-react の標準アイコンに合わせる
- */
 const SourceIcon = ({ url, name, isActive }: { url: string; name: string; isActive?: boolean }) => {
   const getFaviconUrl = (url: string) => {
     try {
@@ -78,7 +83,11 @@ export function DashboardSidebar({
   onSelectSource, 
   onDeleteSource,
   sources,
-  onAddSource
+  onAddSource,
+  articleCount = 0,
+  isRefreshing = false,
+  onRefresh,
+  isAdmin = false
 }: DashboardSidebarProps) {
   const { user } = useUser();
   const { toast } = useToast();
@@ -110,7 +119,7 @@ export function DashboardSidebar({
               <SidebarMenuButton 
                 isActive={activeCategory === 'All' && !selectedSourceName} 
                 onClick={() => onSelectSource('All')}
-                tooltip="タイムライン"
+                tooltip="ストリーム"
                 className="h-10 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
                 <LayoutDashboard className="w-5 h-5 shrink-0" />
@@ -127,7 +136,7 @@ export function DashboardSidebar({
                   }
                   onSelectSource({ id: 'bookmarks', name: 'Bookmarks', url: '', category: 'Bookmarks' as any });
                 }}
-                tooltip="ブックマーク"
+                tooltip="保管庫"
                 className="h-10 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
                 <Bookmark className="w-5 h-5 shrink-0" />
@@ -246,14 +255,40 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-white/5 flex flex-col items-center gap-4">
-        {/* ダークモード・ライトモード切り替えボタン */}
-        <ThemeToggle />
-        
-        <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden text-center">
-          <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-            FLASHBOARD v1.0
-          </p>
+      <SidebarFooter className="p-4 border-t border-white/5 flex flex-col items-stretch gap-4">
+        {/* ステータス情報 */}
+        <div className="flex flex-col gap-2 group-data-[collapsible=icon]:hidden">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase">
+              <Database className="w-3 h-3 text-primary" />
+              DB Status
+            </div>
+            <Badge variant="secondary" className="text-[9px] font-black px-2 py-0 h-4 bg-primary/10 text-primary border-none">
+              {articleCount} ARTICLES
+            </Badge>
+          </div>
+          
+          {isAdmin && onRefresh && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full rounded-xl h-9 text-[10px] font-black border-primary/20 hover:bg-primary/5 gap-2" 
+              onClick={onRefresh} 
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "SYNCING..." : "SYNC NOW"}
+            </Button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-4">
+          <ThemeToggle />
+          <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden text-center">
+            <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
+              FLASHBOARD v1.0
+            </p>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>

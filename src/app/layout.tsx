@@ -31,7 +31,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            <SidebarProvider defaultOpen={true}>
+            <SidebarProvider defaultOpen={false}>
               {children}
               <Toaster />
             </SidebarProvider>

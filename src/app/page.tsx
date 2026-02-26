@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, Calendar, Info, Database, Zap } from 'lucide-react';
+import { Bookmark, Calendar, Info, Database, Zap, Filter } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -184,6 +184,10 @@ export default function Home() {
         }}
         sources={allSources}
         onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です" })}
+        articleCount={normalizedArticles.length}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        isAdmin={user?.email === ADMIN_EMAIL}
       />
 
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
@@ -227,37 +231,32 @@ export default function Home() {
           <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
         ) : null}
 
-        <div className="flex-1 p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
+        <div className="flex-1 p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+          {/* カテゴリ・タグ 階層化ナビゲーション */}
           <section className="space-y-6">
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted p-1 rounded-full border border-white/5 shadow-inner">
-                    <TabsList className="bg-transparent h-10">
-                      <TabsTrigger value="All" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">すべて</TabsTrigger>
-                      <TabsTrigger value="Reliable" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">信頼</TabsTrigger>
-                      <TabsTrigger value="Discovery" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">発見</TabsTrigger>
-                      <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                        <Bookmark className="w-4 h-4" />
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <div className="bg-muted px-4 py-2 rounded-full text-xs font-black text-muted-foreground flex items-center gap-2 border border-white/5">
-                    <Database className="w-3.5 h-3.5 text-primary" />
-                    {isInitialLoading ? "LOADING..." : `${filteredArticles.length} ARTICLES`}
-                  </div>
-                  {user?.email === ADMIN_EMAIL && (
-                    <Button variant="outline" size="sm" className="rounded-full h-10 px-6 text-xs font-black border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
-                      {isRefreshing ? "SYNCING..." : "SYNC NOW"}
-                    </Button>
-                  )}
+                <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted p-1 rounded-full border border-white/5 shadow-inner self-start">
+                  <TabsList className="bg-transparent h-10">
+                    <TabsTrigger value="All" className="rounded-full px-6 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-6 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">信頼</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-6 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Bookmark className="w-4 h-4" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                {/* 選択中のステータス表示 */}
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="rounded-full border-primary/20 bg-primary/5 text-primary text-[10px] font-black h-8 px-4 flex items-center gap-2">
+                    <Filter className="w-3 h-3" />
+                    {selectedSourceName || selectedTag || (activeCategory === 'All' ? 'LATEST' : activeCategory.toUpperCase())}
+                  </Badge>
                 </div>
               </div>
 
-              {/* 復旧: 記事タグ絞り込みリスト */}
+              {/* 中分類：タグ絞り込みリスト */}
               {allTags.length > 0 && (
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
                   <Badge 
