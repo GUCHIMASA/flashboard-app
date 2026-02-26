@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, ArrowRight, Zap, Search, Waves } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, Zap, Search, Waves } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -77,6 +77,8 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
     window.open(twitterUrl, '_blank');
   };
 
+  const translateUrl = `https://translate.google.com/translate?sl=auto&tl=ja&u=${encodeURIComponent(article.link)}`;
+
   return (
     <Card 
       className={cn(
@@ -96,7 +98,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-3 h-3 text-muted-foreground" />
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </div>
             <span className="text-[10px] font-black text-primary truncate uppercase tracking-tight">
@@ -174,11 +176,18 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>
-              <Button asChild variant="default" size="sm" className="flex-1 h-9 font-black" onClick={(e) => e.stopPropagation()}>
-                <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                  元記事を読む <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
+              <div className="flex-1 flex gap-2">
+                <Button asChild variant="outline" size="sm" className="flex-1 h-9 font-black text-[10px] px-2" onClick={(e) => e.stopPropagation()}>
+                  <a href={translateUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 justify-center">
+                    <Globe className="h-3.5 w-3.5" /> 翻訳
+                  </a>
+                </Button>
+                <Button asChild variant="default" size="sm" className="flex-1 h-9 font-black text-[10px] px-2" onClick={(e) => e.stopPropagation()}>
+                  <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 justify-center">
+                    元記事 <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
             </div>
           </CardFooter>
         </div>
@@ -186,4 +195,3 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
     </Card>
   );
 }
-
