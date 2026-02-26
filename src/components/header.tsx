@@ -6,7 +6,7 @@ import { UserMenu } from './auth/UserMenu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
 /**
- * 統合されたアプリケーションヘッダー
+ * 統合されたアプリケーションヘッダー（最上部に固定）
  */
 export default function Header() {
   return (
@@ -19,7 +19,6 @@ export default function Header() {
       </div>
       
       <div className="flex items-center gap-3">
-        {/* テーマ切り替えボタンはサイドバーへ移動しました */}
         <UserMenu />
       </div>
     </header>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -188,9 +189,10 @@ export default function Home() {
         isAdmin={user?.email === ADMIN_EMAIL}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
+      <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden relative">
         <Header />
         
+        {/* ヒーローエリア */}
         {!isInitialLoading && filteredArticles.length > 0 ? (
           <section className="relative w-full border-b border-white/5">
             <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
@@ -230,8 +232,8 @@ export default function Home() {
         ) : null}
 
         <div className="flex-1 p-4 md:p-6 space-y-4 max-w-[1600px] mx-auto w-full">
-          {/* 大分類・中分類を統合したコンパクトなフィルターエリア */}
-          <section className="sticky top-[64px] z-30 bg-background/95 backdrop-blur-sm py-2 border-b border-white/5">
+          {/* スティッキーフィルターバー */}
+          <section className="sticky top-[64px] z-30 bg-background/95 backdrop-blur-sm py-3 border-b border-white/5 -mx-4 md:-mx-6 px-4 md:px-6">
             <div className="flex flex-wrap items-center gap-2">
               <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted p-1 rounded-full border border-white/5">
                 <TabsList className="bg-transparent h-8">
@@ -256,7 +258,6 @@ export default function Home() {
 
               <div className="flex-1 h-px bg-white/5 hidden md:block" />
 
-              {/* タグチップス（横スクロールで一行に収める） */}
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar max-w-full md:max-w-[50%]">
                 {allTags.map(tag => (
                   <Badge 
@@ -275,6 +276,7 @@ export default function Home() {
             </div>
           </section>
 
+          {/* 記事リスト */}
           {isInitialLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
               {Array.from({ length: 12 }).map((_, i) => (
