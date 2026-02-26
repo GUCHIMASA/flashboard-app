@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 
 export const metadata: Metadata = {
-  title: 'AI Synapse | インテリジェントAIダッシュボード',
+  title: 'Flashboard | インテリジェントAIダッシュボード',
   description: 'AIを活用した情報の集約と要約を実現する次世代ダッシュボード。',
 };
 

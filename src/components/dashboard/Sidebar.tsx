@@ -73,8 +73,8 @@ export function DashboardSidebar({
           <div className="bg-primary p-2 rounded-xl neo-blur animate-float">
             <Zap className="w-6 h-6 text-white" />
           </div>
-          <h1 className="font-headline text-xl font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden">
-            SYNAPSE
+          <h1 className="font-headline text-xl font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden uppercase">
+            FLASHBOARD
           </h1>
         </div>
       </SidebarHeader>
@@ -264,7 +264,7 @@ export function DashboardSidebar({
       <SidebarFooter className="p-6 border-t border-white/5">
         <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden">
           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-            AI SYNAPSE v1.0
+            FLASHBOARD v1.0
           </p>
           <div className="flex gap-4">
             <Link href="/terms" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">規約</Link>

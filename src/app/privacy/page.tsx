@@ -26,7 +26,7 @@ export default function PrivacyPolicy() {
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8 text-foreground/90 leading-relaxed">
           <section className="space-y-4">
             <h2 className="text-2xl font-black border-l-4 border-primary pl-4">1. 収集する情報</h2>
-            <p>AI Synapse（以下「当サービス」）は、以下の情報を収集する場合があります。</p>
+            <p>Flashboard（以下「当サービス」）は、以下の情報を収集する場合があります。</p>
             <ul className="list-disc pl-6 space-y-2">
               <li><strong>アカウント情報:</strong> メールアドレス、氏名、プロフィール画像。</li>
               <li><strong>利用データ:</strong> ブックマークした記事、追加したニュースソース。</li>

@@ -39,7 +39,7 @@ export async function generateMetadata(
   const description = article.act || article.content?.substring(0, 100);
 
   return {
-    title: `${title} | AI Synapse`,
+    title: `${title} | Flashboard`,
     description: description,
     openGraph: {
       title: title,
@@ -175,7 +175,7 @@ export default async function ArticlePage({ params }: Props) {
             <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">プライバシーポリシー</Link>
           </div>
           <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
-            © 2024 AI SYNAPSE
+            © 2024 FLASHBOARD
           </p>
         </footer>
       </main>

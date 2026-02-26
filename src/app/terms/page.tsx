@@ -26,7 +26,7 @@ export default function TermsOfService() {
         <div className="prose prose-slate dark:prose-invert max-w-none space-y-8 text-foreground/90 leading-relaxed">
           <section className="space-y-4">
             <h2 className="text-2xl font-black border-l-4 border-primary pl-4">1. サービスの概要</h2>
-            <p>AI Synapse（以下「当サービス」）は、RSSフィード等を通じてテックニュースを収集し、AIを用いて翻訳および要約を提供するプラットフォームです。</p>
+            <p>Flashboard（以下「当サービス」）は、RSSフィード等を通じてテックニュースを収集し、AIを用いて翻訳および要約を提供するプラットフォームです。</p>
           </section>
 
           <section className="space-y-4">

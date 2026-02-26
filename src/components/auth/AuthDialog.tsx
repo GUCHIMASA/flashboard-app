@@ -66,7 +66,6 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       onOpenChange(false);
       reset();
     } catch (error: any) {
-      // セントラルエラーハンドラーのガイドラインに基づき、console.error は避けてトーストで通知します
       let message = "認証中にエラーが発生しました。";
       
       switch (error.code) {
@@ -135,7 +134,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             {mode === 'login' ? 'おかえりなさい' : 'アカウント作成'}
           </DialogTitle>
           <DialogDescription className="text-center">
-            AI Synapse で次世代の情報収集を。
+            Flashboard で次世代の情報収集を。
           </DialogDescription>
         </DialogHeader>
 

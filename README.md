@@ -1,10 +1,10 @@
 
-# AI Synapse | インテリジェントAIダッシュボード
+# Flashboard | インテリジェントAIダッシュボード
 
 AIを活用した情報の集約と要約を実現する次世代ダッシュボード。
 
 ## 1. アプリ概要
-「AI Synapse」は、複数のRSSフィードから最新のテックニュースを収集し、AI（Google Gemini）を用いて日本語翻訳、3つの要点に要約して表示する情報アグリゲーターです。
+「Flashboard（フラッシュボード）」は、複数のRSSフィードから最新のテックニュースを収集し、AI（Google Gemini）を用いて日本語翻訳、3つの要点に要約して表示する情報アグリゲーターです。
 
 ## 2. 自動同期（Cron）のセットアップ手順
 自動同期を機能させるには、以下のステップが必要です。
@@ -16,11 +16,11 @@ Firebase App Hosting（または使用しているホスティングサービス
 ### ステップ2: Cloud Scheduler の作成
 1. [Google Cloud Console](https://console.cloud.google.com/) の **Cloud Scheduler** ページに移動します。
 2. 「ジョブを作成」をクリックします。
-3. **名前**: `ai-synapse-sync`
+3. **名前**: `flashboard-sync`
 4. **頻度**: `0 */3 * * *` （3時間ごとに実行）
 5. **タイムゾーン**: 日本標準時 (JST)
 6. **ターゲットタイプ**: `HTTP`
-7. **URL**: `https://あなたのアプリのドメイン/api/cron/sync?secret=ステップ1で設定した文字列`
+7. **URL**: `https://flashboard.jp/api/cron/sync?secret=ステップ1で設定した文字列`
 8. **HTTPメソッド**: `GET`
 9. 「作成」をクリックします。
 

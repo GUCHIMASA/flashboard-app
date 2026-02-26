@@ -71,7 +71,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
     const shareUrl = `${window.location.origin}/article/${article.id}`;
-    const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
+    const shareText = `「${article.translatedTitle || article.title}」 #Flashboard`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(twitterUrl, '_blank');
   };

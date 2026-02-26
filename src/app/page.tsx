@@ -266,7 +266,7 @@ export default function Home() {
 
           <footer className="py-12 border-t border-border/50 text-center space-y-4">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-              © 2024 AI SYNAPSE
+              © 2024 FLASHBOARD
             </p>
             <div className="flex items-center justify-center gap-6">
               <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">利用規約</Link>
