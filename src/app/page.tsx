@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 // 管理者用メールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
@@ -86,6 +87,14 @@ export default function Home() {
     });
   }, [firestoreArticles]);
 
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    normalizedArticles.forEach(a => {
+      a.tags?.forEach(t => tags.add(t));
+    });
+    return Array.from(tags).sort();
+  }, [normalizedArticles]);
+
   const bookmarkedItemsQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
     return collection(db, 'users', user.uid, 'bookmarks');
@@ -123,20 +132,16 @@ export default function Home() {
     });
   }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
-  // ロード中フラッシュ防止
   const isInitialLoading = articlesLoading && normalizedArticles.length === 0;
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    
     if (user?.email !== ADMIN_EMAIL) {
       toast({ variant: "destructive", title: "権限エラー", description: "管理者のみ実行可能です。" });
       return;
     }
-
     setIsRefreshing(true);
     toast({ title: "同期を開始しました", description: "最新情報を処理中..." });
-
     try {
       const result = await syncRss({ 
         sources: allSources,
@@ -151,7 +156,6 @@ export default function Home() {
   };
 
   const handleSourceSelect = (source: FeedSource | 'All') => {
-    // トグル動作: すでに選択されているソースをクリックした場合は解除
     if (source === 'All') {
       setActiveCategory('All');
       setSelectedSourceName(null);
@@ -159,11 +163,9 @@ export default function Home() {
       setActiveCategory('Bookmarks');
       setSelectedSourceName(null);
     } else if (selectedSourceName === source.name) {
-      // 選択解除
       setActiveCategory('All');
       setSelectedSourceName(null);
     } else {
-      // 新規選択
       setActiveCategory(source.category);
       setSelectedSourceName(source.name);
     }
@@ -187,7 +189,6 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header />
         
-        {/* フルワイド・ヒーロースライダー */}
         {!isInitialLoading && filteredArticles.length > 0 ? (
           <section className="relative w-full border-b border-white/5">
             <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
@@ -228,31 +229,62 @@ export default function Home() {
 
         <div className="flex-1 p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
           <section className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-1 rounded-full border border-white/5 shadow-inner">
-                  <TabsList className="bg-transparent h-10">
-                    <TabsTrigger value="All" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">すべて</TabsTrigger>
-                    <TabsTrigger value="Reliable" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">信頼</TabsTrigger>
-                    <TabsTrigger value="Discovery" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">発見</TabsTrigger>
-                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                      <Bookmark className="w-4 h-4" />
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <div className="bg-muted px-4 py-2 rounded-full text-xs font-black text-muted-foreground flex items-center gap-2 border border-white/5">
-                  <Database className="w-3.5 h-3.5 text-primary" />
-                  {isInitialLoading ? "LOADING..." : `${filteredArticles.length} ARTICLES`}
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted p-1 rounded-full border border-white/5 shadow-inner">
+                    <TabsList className="bg-transparent h-10">
+                      <TabsTrigger value="All" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">すべて</TabsTrigger>
+                      <TabsTrigger value="Reliable" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">信頼</TabsTrigger>
+                      <TabsTrigger value="Discovery" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">発見</TabsTrigger>
+                      <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        <Bookmark className="w-4 h-4" />
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
-                {user?.email === ADMIN_EMAIL && (
-                  <Button variant="outline" size="sm" className="rounded-full h-10 px-6 text-xs font-black border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "SYNCING..." : "SYNC NOW"}
-                  </Button>
-                )}
+                
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted px-4 py-2 rounded-full text-xs font-black text-muted-foreground flex items-center gap-2 border border-white/5">
+                    <Database className="w-3.5 h-3.5 text-primary" />
+                    {isInitialLoading ? "LOADING..." : `${filteredArticles.length} ARTICLES`}
+                  </div>
+                  {user?.email === ADMIN_EMAIL && (
+                    <Button variant="outline" size="sm" className="rounded-full h-10 px-6 text-xs font-black border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                      {isRefreshing ? "SYNCING..." : "SYNC NOW"}
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {/* 復旧: 記事タグ絞り込みリスト */}
+              {allTags.length > 0 && (
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                  <Badge 
+                    variant={selectedTag === null ? "default" : "outline"}
+                    className={cn(
+                      "cursor-pointer rounded-full px-4 py-1.5 h-8 shrink-0 font-black text-[10px] uppercase tracking-wider transition-all",
+                      selectedTag === null ? "bg-primary shadow-lg shadow-primary/20" : "border-white/10 hover:bg-white/5"
+                    )}
+                    onClick={() => setSelectedTag(null)}
+                  >
+                    ALL TAGS
+                  </Badge>
+                  {allTags.map(tag => (
+                    <Badge 
+                      key={tag}
+                      variant={selectedTag === tag ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer rounded-full px-4 py-1.5 h-8 shrink-0 font-black text-[10px] uppercase tracking-wider transition-all",
+                        selectedTag === tag ? "bg-primary shadow-lg shadow-primary/20" : "border-white/10 hover:bg-white/5"
+                      )}
+                      onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                    >
+                      #{tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {isInitialLoading ? (
