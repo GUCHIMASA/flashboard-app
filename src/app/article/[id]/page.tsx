@@ -73,7 +73,7 @@ export default async function ArticlePage({ params }: Props) {
     );
   }
 
-  const shareUrl = `https://ai-synapse.web.app/article/${id}`; // 仮のドメイン。本番環境に合わせて調整してください
+  const shareUrl = `https://ai-synapse.web.app/article/${id}`; 
   const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(article.translatedTitle || article.title)}&url=${encodeURIComponent(shareUrl)}`;
   const translateUrl = `https://translate.google.com/translate?sl=auto&tl=ja&u=${encodeURIComponent(article.link)}`;
 
@@ -124,7 +124,6 @@ export default async function ArticlePage({ params }: Props) {
 
         {/* ACE形式セクション */}
         <div className="space-y-6 pt-4">
-          {/* 5. ⚡ ACT */}
           <div className="group bg-primary/5 p-6 rounded-[2rem] border border-primary/10 hover:border-primary/30 transition-all">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
@@ -135,7 +134,6 @@ export default async function ArticlePage({ params }: Props) {
             <p className="text-xl leading-relaxed font-bold">{article.act}</p>
           </div>
 
-          {/* 6. 🔍 CONTEXT */}
           <div className="group bg-card p-6 rounded-[2rem] border border-border hover:border-primary/20 transition-all shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-2xl bg-muted text-foreground shadow-sm">
@@ -146,7 +144,6 @@ export default async function ArticlePage({ params }: Props) {
             <p className="text-lg leading-relaxed text-foreground/90">{article.context}</p>
           </div>
 
-          {/* 7. 🌊 EFFECT */}
           <div className="group bg-card p-6 rounded-[2rem] border border-border hover:border-primary/20 transition-all shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-2xl bg-muted text-foreground shadow-sm">
@@ -160,7 +157,6 @@ export default async function ArticlePage({ params }: Props) {
 
         <Separator className="my-8" />
 
-        {/* 8, 9, 10. アクションボタン */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button asChild className="h-14 rounded-full font-black text-lg gap-2 shadow-xl hover:scale-[1.02] transition-transform">
             <a href={article.link} target="_blank" rel="noopener noreferrer">
@@ -179,13 +175,15 @@ export default async function ArticlePage({ params }: Props) {
           </Button>
         </div>
 
-        {/* 元のコンテンツのスニペット（任意） */}
-        <div className="pt-12 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mb-4">Original Content Snippet</p>
-          <p className="text-sm italic text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            "{article.content?.substring(0, 300)}..."
+        <footer className="pt-20 pb-10 text-center space-y-4 border-t border-border/10 mt-12">
+          <div className="flex items-center justify-center gap-8 mb-4">
+            <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">利用規約</Link>
+            <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">プライバシーポリシー</Link>
+          </div>
+          <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+            © 2024 AI SYNAPSE
           </p>
-        </div>
+        </footer>
       </main>
     </div>
   );

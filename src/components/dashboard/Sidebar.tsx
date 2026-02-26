@@ -10,7 +10,9 @@ import {
   Zap,
   Bookmark,
   Globe,
-  Trash2
+  Trash2,
+  FileText,
+  Lock
 } from 'lucide-react';
 import { Category, FeedSource } from '@/app/lib/types';
 import { useUser } from '@/firebase';
@@ -29,6 +31,7 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
@@ -230,13 +233,43 @@ export function DashboardSidebar({
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        <SidebarSeparator className="mx-6 my-4 bg-white/5" />
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4">
+            サポート
+          </SidebarGroupLabel>
+          <SidebarMenu className="px-3">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="利用規約">
+                <Link href="/terms" className="h-10 rounded-xl">
+                  <FileText className="w-4 h-4 mr-2" />
+                  <span className="text-xs">利用規約</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="プライバシー">
+                <Link href="/privacy" className="h-10 rounded-xl">
+                  <Lock className="w-4 h-4 mr-2" />
+                  <span className="text-xs">プライバシー</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-6 border-t border-white/5">
-        <div className="flex items-center justify-center group-data-[collapsible=icon]:hidden">
+        <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden">
           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
             AI SYNAPSE v1.0
           </p>
+          <div className="flex gap-4">
+            <Link href="/terms" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">規約</Link>
+            <Link href="/privacy" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">プライバシー</Link>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>

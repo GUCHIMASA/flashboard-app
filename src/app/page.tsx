@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
@@ -20,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 
 export default function Home() {
   const { user } = useUser();
@@ -195,11 +197,6 @@ export default function Home() {
                           <h1 className="text-2xl md:text-4xl font-black mb-3 text-white line-clamp-2 leading-tight">
                             {article.translatedTitle || article.title}
                           </h1>
-                          <Button asChild size="sm" className="rounded-full px-4 h-8 text-xs font-bold">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">
-                              詳しく読む <ArrowRight className="ml-2 w-3 h-3" />
-                            </a>
-                          </Button>
                         </div>
                       </div>
                     </CarouselItem>
@@ -262,6 +259,16 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          <footer className="py-12 border-t border-border/50 text-center space-y-4">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              © 2024 AI SYNAPSE - Next-Gen Intelligence Dashboard
+            </p>
+            <div className="flex items-center justify-center gap-6">
+              <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">利用規約</Link>
+              <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">プライバシーポリシー</Link>
+            </div>
+          </footer>
         </div>
       </main>
 
