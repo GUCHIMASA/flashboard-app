@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { ThemeToggle } from './ThemeToggle';
 
 interface DashboardSidebarProps {
   activeCategory: Category | 'All' | 'Bookmarks';
@@ -44,6 +45,7 @@ interface DashboardSidebarProps {
 
 /**
  * 取得元のアイコンを管理するコンポーネント
+ * 折りたたみ時の整列を保つためサイズを固定
  */
 const SourceIcon = ({ url, name, isActive }: { url: string; name: string; isActive?: boolean }) => {
   const getFaviconUrl = (url: string) => {
@@ -245,14 +247,14 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-white/5 group-data-[collapsible=icon]:p-2">
-        <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden">
+      <SidebarFooter className="p-4 border-t border-white/5 flex flex-col items-center gap-4">
+        {/* ダークモード・ライトモード切り替えボタン */}
+        <ThemeToggle />
+        
+        <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden text-center">
           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
             FLASHBOARD v1.0
           </p>
-        </div>
-        <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
-          <Zap className="w-4 h-4 text-primary/40" />
         </div>
       </SidebarFooter>
     </Sidebar>
