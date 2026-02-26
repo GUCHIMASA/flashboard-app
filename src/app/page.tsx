@@ -23,6 +23,9 @@ import Header from '@/components/header';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 
+// 管理者用メールアドレス
+const ADMIN_EMAIL = 'admin@example.com';
+
 export default function Home() {
   const { user } = useUser();
   const db = useFirestore();
@@ -124,6 +127,12 @@ export default function Home() {
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
+    // 権限チェック (安全策)
+    if (user?.email !== ADMIN_EMAIL) {
+      toast({ variant: "destructive", title: "権限エラー", description: "この操作は管理者のみ可能です。" });
+      return;
+    }
+
     setIsRefreshing(true);
     toast({ title: "同期を開始しました", description: "最新情報を翻訳・要約中..." });
 
@@ -224,7 +233,8 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                {user && (
+                {/* 管理者（admin@example.com）のみ同期ボタンを表示 */}
+                {user?.email === ADMIN_EMAIL && (
                   <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "同期中..." : "最新記事を取得"}
                   </Button>
