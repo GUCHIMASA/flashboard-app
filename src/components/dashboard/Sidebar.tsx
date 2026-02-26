@@ -10,8 +10,6 @@ import {
   Bookmark,
   Globe,
   Trash2,
-  FileText,
-  Lock,
   Database,
   RefreshCw
 } from 'lucide-react';
@@ -31,7 +29,6 @@ import {
 } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef } from 'react';
-import { Bookmark, Calendar, Info, Zap, Filter, ChevronRight } from 'lucide-react';
+import { Bookmark, Calendar, Info, Filter, ChevronRight } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
@@ -129,7 +129,7 @@ export default function Home() {
     });
   }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
-  const isInitialLoading = (articlesLoading && normalizedArticles.length === 0) || !db;
+  const isInitialLoading = articlesLoading || !db;
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
@@ -154,16 +154,13 @@ export default function Home() {
 
   const handleSourceSelect = (source: FeedSource | 'All') => {
     if (source === 'All') {
-      if (activeCategory === 'All' && !selectedSourceName) {
-        // すでに全表示なら何もしない
-      } else {
-        setActiveCategory('All');
-        setSelectedSourceName(null);
-      }
+      setActiveCategory('All');
+      setSelectedSourceName(null);
     } else if (source.id === 'bookmarks') {
       setActiveCategory('Bookmarks');
       setSelectedSourceName(null);
     } else if (selectedSourceName === source.name) {
+      // トグル動作: 既に選択されているソースを再度クリックしたら解除
       setActiveCategory('All');
       setSelectedSourceName(null);
     } else {
@@ -191,7 +188,7 @@ export default function Home() {
         isAdmin={user?.email === ADMIN_EMAIL}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 max-w-full relative">
         <Header />
         
         {/* ヒーローエリア（フルワイド） */}
@@ -201,7 +198,7 @@ export default function Home() {
               <CarouselContent>
                 {filteredArticles.slice(0, 5).map((article) => (
                   <CarouselItem key={article.id}>
-                    <div className="relative h-[300px] md:h-[550px] w-full overflow-hidden">
+                    <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden">
                       <Image 
                         src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                         alt={article.title}
@@ -211,7 +208,7 @@ export default function Home() {
                         sizes="100vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
-                      <div className="absolute bottom-0 left-0 p-8 md:p-20 w-full max-w-[1600px] mx-auto right-0">
+                      <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-[1600px] mx-auto right-0">
                         <div className="flex items-center gap-3 mb-4">
                           <Badge className="bg-primary border-none text-[10px] md:text-xs h-6 md:h-7 px-4 rounded-full font-black uppercase">{article.sourceName}</Badge>
                           <span className="text-xs md:text-sm text-white/70 font-black flex items-center gap-2">
@@ -219,7 +216,7 @@ export default function Home() {
                             {format(new Date(article.publishedAt), 'yyyy/MM/dd HH:mm')}
                           </span>
                         </div>
-                        <h1 className="text-2xl md:text-6xl font-black mb-6 text-white line-clamp-2 leading-tight tracking-tighter uppercase">
+                        <h1 className="text-2xl md:text-5xl font-black mb-4 text-white line-clamp-2 leading-tight tracking-tighter uppercase">
                           {article.translatedTitle || article.title}
                         </h1>
                       </div>
@@ -230,12 +227,12 @@ export default function Home() {
             </Carousel>
           </section>
         ) : isInitialLoading ? (
-          <section className="relative w-full h-[300px] md:h-[550px] bg-muted animate-pulse border-b border-white/5" />
+          <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
         ) : null}
 
         <div className="flex-1 flex flex-col w-full">
           {/* スティッキーフィルターメニューバー */}
-          <section className="sticky top-[64px] z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full">
+          <section className="sticky top-[64px] z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full shadow-sm">
             <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
               <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
                 <TabsList className="bg-transparent h-8">
