@@ -173,11 +173,11 @@ export default function Home() {
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-        {/* 指示1: Headerを最上位に配置（SidebarProviderの直下） */}
+        {/* 固定ヘッダー: SidebarTriggerが含まれるためSidebarProviderの内部に配置 */}
         <Header />
-
-        {/* 指示2: Headerの下にSidebarとmainを内包するコンテナ */}
-        <div className="flex flex-1 w-full overflow-hidden relative">
+        
+        {/* サイドバーとメインコンテンツのコンテナ: flex-1 で残りの高さを占有 */}
+        <div className="flex flex-1 overflow-hidden">
           <DashboardSidebar 
             activeCategory={activeCategory as any} 
             selectedSourceName={selectedSourceName}
@@ -195,8 +195,8 @@ export default function Home() {
             isAdmin={user?.email === ADMIN_EMAIL}
           />
 
-          {/* 指示2: main要素にoverflow-y: autoを指定し、スクロールをここに限定 */}
-          <main className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar">
+          {/* メインスクロール領域: ここに overflow-y-auto を指定 */}
+          <main className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar bg-background">
             {/* ヒーローエリア */}
             {!isInitialLoading && filteredArticles.length > 0 ? (
               <section className="relative w-full border-b border-white/5">
@@ -236,94 +236,92 @@ export default function Home() {
               <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
             ) : null}
 
-            <div className="flex-1 flex flex-col w-full">
-              {/* スティッキーフィルターメニューバー: mainのトップに吸着 */}
-              <section className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full shadow-sm">
-                <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
-                  <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
-                    <TabsList className="bg-transparent h-8">
-                      <TabsTrigger value="All" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">すべて</TabsTrigger>
-                      <TabsTrigger value="Reliable" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">信頼</TabsTrigger>
-                      <TabsTrigger value="Discovery" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">発見</TabsTrigger>
-                      <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary">
-                        <Bookmark className="w-3.5 h-3.5" />
-                      </TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+            {/* スティッキーフィルターメニューバー: mainのトップに吸着 */}
+            <section className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full shadow-sm">
+              <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
+                <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
+                  <TabsList className="bg-transparent h-8">
+                    <TabsTrigger value="All" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">信頼</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary">
+                      <Bookmark className="w-3.5 h-3.5" />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
 
-                  <div className="flex items-center gap-3 overflow-x-auto no-scrollbar flex-1">
-                    {(selectedSourceName || selectedTag) && (
-                      <>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <Badge variant="outline" className="rounded-full border-primary/30 bg-primary/10 text-primary text-[10px] font-black h-8 px-4 flex items-center gap-2 shrink-0">
-                          <Filter className="w-3.5 h-3.5" />
-                          {selectedSourceName || selectedTag}
-                        </Badge>
-                      </>
-                    )}
-                    
-                    <div className="h-6 w-px bg-white/10 mx-2 shrink-0 hidden md:block" />
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar flex-1">
+                  {(selectedSourceName || selectedTag) && (
+                    <>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <Badge variant="outline" className="rounded-full border-primary/30 bg-primary/10 text-primary text-[10px] font-black h-8 px-4 flex items-center gap-2 shrink-0">
+                        <Filter className="w-3.5 h-3.5" />
+                        {selectedSourceName || selectedTag}
+                      </Badge>
+                    </>
+                  )}
+                  
+                  <div className="h-6 w-px bg-white/10 mx-2 shrink-0 hidden md:block" />
 
-                    <div className="flex items-center gap-2">
-                      {allTags.map(tag => (
-                        <Badge 
-                          key={tag}
-                          variant={selectedTag === tag ? "default" : "outline"}
-                          className={cn(
-                            "cursor-pointer rounded-full px-4 py-1 h-8 shrink-0 font-black text-[9px] uppercase tracking-[0.1em] transition-all",
-                            selectedTag === tag ? "bg-primary" : "border-white/10 hover:bg-white/10 bg-white/5"
-                          )}
-                          onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                        >
-                          #{tag}
-                        </Badge>
-                      ))}
-                    </div>
+                  <div className="flex items-center gap-2">
+                    {allTags.map(tag => (
+                      <Badge 
+                        key={tag}
+                        variant={selectedTag === tag ? "default" : "outline"}
+                        className={cn(
+                          "cursor-pointer rounded-full px-4 py-1 h-8 shrink-0 font-black text-[9px] uppercase tracking-[0.1em] transition-all",
+                          selectedTag === tag ? "bg-primary" : "border-white/10 hover:bg-white/10 bg-white/5"
+                        )}
+                        onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                      >
+                        #{tag}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-              </section>
-
-              {/* 記事リストエリア */}
-              <div className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-                {isInitialLoading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div key={i} className="h-72 rounded-[2rem] bg-muted animate-pulse border border-white/5" />
-                    ))}
-                  </div>
-                ) : filteredArticles.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filteredArticles.map((article) => (
-                      <div 
-                        key={article.id} 
-                        onClick={() => setActiveArticleId(activeArticleId === article.id ? null : article.id)}
-                        className="transition-all duration-300"
-                      >
-                        <FeedCard 
-                          article={article} 
-                          isActive={activeArticleId === article.id}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="py-32 text-center bg-muted/10 rounded-[3rem] border border-dashed border-white/10">
-                    <Info className="w-16 h-16 mx-auto text-muted-foreground/30 mb-6" />
-                    <h3 className="text-2xl font-black mb-3">該当する記事はありません</h3>
-                    <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">記事が見つかりませんでした</p>
-                  </div>
-                )}
-
-                <footer className="py-16 border-t border-white/5 text-center space-y-6 mt-12">
-                  <div className="flex items-center justify-center gap-12">
-                    <Link href="/terms" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">利用規約</Link>
-                    <Link href="/privacy" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">プライバシー</Link>
-                  </div>
-                  <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.5em]">
-                    © 2024 FLASHBOARD INTELLIGENCE
-                  </p>
-                </footer>
               </div>
+            </section>
+
+            {/* 記事リストエリア */}
+            <div className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+              {isInitialLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="h-72 rounded-[2rem] bg-muted animate-pulse border border-white/5" />
+                  ))}
+                </div>
+              ) : filteredArticles.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredArticles.map((article) => (
+                    <div 
+                      key={article.id} 
+                      onClick={() => setActiveArticleId(activeArticleId === article.id ? null : article.id)}
+                      className="transition-all duration-300"
+                    >
+                      <FeedCard 
+                        article={article} 
+                        isActive={activeArticleId === article.id}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-32 text-center bg-muted/10 rounded-[3rem] border border-dashed border-white/10">
+                  <Info className="w-16 h-16 mx-auto text-muted-foreground/30 mb-6" />
+                  <h3 className="text-2xl font-black mb-3">該当する記事はありません</h3>
+                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">記事が見つかりませんでした</p>
+                </div>
+              )}
+
+              <footer className="py-16 border-t border-white/5 text-center space-y-6 mt-12">
+                <div className="flex items-center justify-center gap-12">
+                  <Link href="/terms" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">利用規約</Link>
+                  <Link href="/privacy" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">プライバシー</Link>
+                </div>
+                <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.5em]">
+                  © 2024 FLASHBOARD INTELLIGENCE
+                </p>
+              </footer>
             </div>
           </main>
         </div>
@@ -340,3 +338,4 @@ export default function Home() {
     </SidebarProvider>
   );
 }
+
