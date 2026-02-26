@@ -208,7 +208,7 @@ export default function Home() {
                               {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
                             </span>
                           </div>
-                          <h1 className="text-xl md:text-3xl font-black mb-3 text-white line-clamp-2 leading-tight">
+                          <h1 className="text-2xl md:text-4xl font-black mb-3 text-white line-clamp-2 leading-tight">
                             {article.title}
                           </h1>
                           <Button asChild size="sm" className="rounded-full px-4 h-8 text-xs font-bold">
@@ -243,7 +243,7 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                {isAdmin && (
+                {isAdmin && activeCategory === 'All' && (
                   <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "同期中..." : "最新記事を取得"}
                   </Button>
@@ -252,19 +252,19 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-2">
-              <TagIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <TagIcon className="w-4 h-4 text-muted-foreground shrink-0" />
               <ScrollArea className="w-full">
-                <div className="flex gap-1.5 pb-2">
+                <div className="flex flex-nowrap gap-2 pb-2">
                   {selectedTag && (
-                    <Badge variant="default" className="cursor-pointer bg-primary gap-1 text-[10px] h-6" onClick={() => setSelectedTag(null)}>
-                      #{selectedTag} <X className="w-2.5 h-2.5" />
+                    <Badge variant="default" className="cursor-pointer bg-primary gap-1 text-[11px] h-7 shrink-0" onClick={() => setSelectedTag(null)}>
+                      #{selectedTag} <X className="w-3 h-3" />
                     </Badge>
                   )}
                   {AVAILABLE_TAGS.filter(t => t !== selectedTag).map(tag => (
                     <Badge 
                       key={tag} 
                       variant="outline" 
-                      className="cursor-pointer hover:bg-primary/10 border-muted text-[10px] h-6 text-muted-foreground"
+                      className="cursor-pointer hover:bg-primary/10 border-muted text-[11px] h-7 text-muted-foreground shrink-0"
                       onClick={() => setSelectedTag(tag)}
                     >
                       #{tag}
@@ -276,13 +276,13 @@ export default function Home() {
             </div>
 
             {articlesLoading && filteredArticles.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-10 rounded-lg bg-muted animate-pulse" />
+                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {filteredArticles.map((article) => (
                   <div 
                     key={article.id} 

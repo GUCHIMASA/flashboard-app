@@ -71,42 +71,42 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group cursor-pointer",
         isActive 
           ? "ring-2 ring-primary/40 shadow-xl z-20 scale-[1.01] opacity-100" 
-          : "opacity-80 hover:opacity-100 hover:border-border/80"
+          : "opacity-70 hover:opacity-100 hover:border-border/80"
       )}
     >
       <CardHeader className={cn(
         "transition-all duration-300",
-        isActive ? "p-4 space-y-3" : "p-2 space-y-0.5"
+        isActive ? "p-4 space-y-4" : "p-2 space-y-1"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-4 h-4 rounded-sm overflow-hidden bg-muted flex items-center justify-center shrink-0">
+            <div className="w-5 h-5 rounded-sm overflow-hidden bg-muted flex items-center justify-center shrink-0">
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+                <Globe className="w-4 h-4 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[12px] font-black text-primary truncate uppercase tracking-tight">
+            <span className="text-[13px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+          <span className="text-[11px] font-medium text-muted-foreground whitespace-nowrap">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
           </span>
         </div>
         
         <h3 className={cn(
           "font-black leading-tight transition-all duration-300",
-          isActive ? "text-lg text-primary" : "text-sm text-foreground line-clamp-1"
+          isActive ? "text-xl text-primary" : "text-[15px] text-foreground line-clamp-1"
         )}>
           {article.title}
         </h3>
 
         {isActive && article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-nowrap overflow-x-auto gap-2 pt-1 no-scrollbar">
             {article.tags.map(tag => (
-              <Badge key={tag} variant="outline" className="text-[10px] py-0 px-2 h-5 border-muted/50 text-muted-foreground bg-muted/20">
+              <Badge key={tag} variant="outline" className="text-[11px] py-0 px-3 h-6 border-muted/50 text-muted-foreground bg-muted/20 shrink-0">
                 #{tag}
               </Badge>
             ))}
@@ -114,7 +114,6 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         )}
       </CardHeader>
       
-      {/* AI Insight エリア */}
       <CardContent className={cn(
         "px-4 transition-all duration-300",
         isActive ? "pb-4 opacity-100" : "h-0 p-0 opacity-0 pointer-events-none"
@@ -130,7 +129,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 <span className="text-[11px] font-black uppercase tracking-widest">Quick Insight</span>
               </div>
               {article.summary ? (
-                <p className="text-sm text-foreground/90 leading-relaxed font-semibold">
+                <p className="text-sm text-foreground/90 leading-relaxed font-bold">
                   {article.summary}
                 </p>
               ) : (
@@ -144,16 +143,16 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
       {isActive && (
         <CardFooter className="p-4 pt-0 flex items-center justify-between mt-auto border-t border-border/10">
           <div className="flex items-center gap-2 pt-3">
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
               {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-primary/10" onClick={(e) => e.stopPropagation()}>
               <Share2 className="h-5 w-5" />
             </Button>
           </div>
-          <Button asChild variant="link" size="sm" className="h-auto p-0 text-xs font-black pt-3 text-primary hover:text-primary/80" onClick={(e) => e.stopPropagation()}>
+          <Button asChild variant="link" size="sm" className="h-auto p-0 text-sm font-black pt-3 text-primary hover:text-primary/80" onClick={(e) => e.stopPropagation()}>
             <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
-              記事をフルで読む <ExternalLink className="h-3 w-3" />
+              記事をフルで読む <ExternalLink className="h-3.5 w-3.5" />
             </a>
           </Button>
         </CardFooter>
