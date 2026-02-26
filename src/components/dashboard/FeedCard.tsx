@@ -88,7 +88,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
     >
       <CardHeader className={cn(
         "transition-all duration-300",
-        isActive ? "p-4 space-y-3" : "p-2 space-y-1"
+        isActive ? "p-4 space-y-3" : "p-1.5 space-y-1"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -99,29 +99,29 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 <Globe className="w-3 h-3 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[11px] font-black text-primary truncate uppercase tracking-tight">
+            <span className="text-[10px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
-          <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">
+          <span className="text-[9px] font-medium text-muted-foreground whitespace-nowrap">
             {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
           </span>
         </div>
         
         <h3 className={cn(
           "font-black leading-tight transition-all duration-300",
-          isActive ? "text-xl text-primary" : "text-lg text-foreground truncate"
+          isActive ? "text-lg text-primary" : "text-sm text-foreground truncate"
         )}>
           {article.translatedTitle || article.title}
         </h3>
 
         {(article.tags && article.tags.length > 0) && (
-          <div className="flex flex-nowrap overflow-x-auto gap-1.5 py-1 no-scrollbar w-full">
+          <div className="flex flex-nowrap overflow-x-auto gap-1 py-0.5 no-scrollbar w-full">
             {article.tags.map(tag => (
               <Badge 
                 key={tag} 
                 variant="outline" 
-                className="text-[10px] py-0 px-2 h-5 border-muted/50 text-muted-foreground bg-muted/20 shrink-0 whitespace-nowrap"
+                className="text-[9px] py-0 px-1.5 h-4 border-muted/50 text-muted-foreground bg-muted/20 shrink-0 whitespace-nowrap"
               >
                 #{tag}
               </Badge>
@@ -138,15 +138,15 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
           <CardContent className="px-4 pb-4">
             <div className="space-y-4 pt-2 border-t border-border/10">
               {article.act && (
-                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <TbWaveSawTool className="w-4 h-4" />
                   </div>
-                  <p className="font-bold flex-1 text-base">{article.act}</p>
+                  <p className="font-bold flex-1 text-base leading-snug">{article.act}</p>
                 </div>
               )}
               {article.context && (
-                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <IoReorderThree className="w-4 h-4" />
                   </div>
@@ -154,7 +154,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                 </div>
               )}
               {article.effect && (
-                <div className="flex items-start gap-2 text-sm leading-relaxed">
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <PiWavesBold className="w-4 h-4" />
                   </div>

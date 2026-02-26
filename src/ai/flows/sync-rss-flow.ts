@@ -26,7 +26,6 @@ const parser = new Parser({
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   },
-  timeout: 30000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -154,7 +153,6 @@ const syncRssFlow = ai.defineFlow(
               console.warn(`[AI Skip] "${item.title}": AI processing failed.`, e.message);
             }
           }
-          await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (e: any) {
         console.error(`[RSS Error] Source: ${source.name}`, e.message);

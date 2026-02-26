@@ -13,7 +13,6 @@ export function initializeFirebase() {
   // 既に初期化されているかチェック
   const apps = getApps();
   if (!apps.length) {
-    // サーバーサイド環境でも確実に動くよう、configを優先的に使用
     firebaseApp = initializeApp(firebaseConfig);
   } else {
     firebaseApp = getApp();

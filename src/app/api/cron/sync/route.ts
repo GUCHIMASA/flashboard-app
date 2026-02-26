@@ -2,13 +2,7 @@ import { NextResponse } from 'next/server';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { INITIAL_SOURCES } from '@/app/lib/mock-data';
 
-export const maxDuration = 60; // 実行時間を60秒に延長
-
-/**
- * Cloud Schedulerから呼び出される自動同期用エンドポイント
- * 
- * セキュリティのため、環境変数 CRON_SECRET をクエリパラメータとして検証します。
- */
+export const maxDuration = 60; // APIルートの実行時間を60秒に設定
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
