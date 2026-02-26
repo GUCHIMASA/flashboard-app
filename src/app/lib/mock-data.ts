@@ -9,16 +9,4 @@ export const INITIAL_SOURCES: FeedSource[] = [
   { id: '6', name: 'Hacker News (AI)', url: 'https://news.ycombinator.com/rss', category: 'Discovery' },
 ];
 
-export const MOCK_ARTICLES: Article[] = [
-  {
-    id: 'a1',
-    title: 'Claude 3.5 Sonnet の発表',
-    content: 'Anthropicは、Claude 3.5 ファミリーの最初のモデルである Claude 3.5 Sonnet を発表しました。推論能力、知識、コーディング能力において新たな業界基準を確立し、Claude 3 Opus よりも大幅に高速化されています。',
-    sourceName: 'Anthropic',
-    sourceUrl: 'https://anthropic.com',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    category: 'Reliable',
-    link: 'https://www.anthropic.com/news/claude-3-5-sonnet',
-    imageUrl: 'https://picsum.photos/seed/anthropic/800/400'
-  }
-];
+export const MOCK_ARTICLES: Article[] = [];

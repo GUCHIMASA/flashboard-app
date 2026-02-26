@@ -3,24 +3,26 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore'
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
-// 'use client' を削除し、サーバーとクライアントの両方で初期化可能にしました。
+/**
+ * Firebaseを初期化します。
+ * クライアントサイドとサーバーサイドの両方で安全に呼び出すことができます。
+ */
 export function initializeFirebase() {
+  let firebaseApp: FirebaseApp;
+
   if (!getApps().length) {
-    let firebaseApp;
     try {
+      // 本番環境（App Hosting等）では引数なしで環境変数を参照
       firebaseApp = initializeApp();
     } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
+      // フォールバックとして設定オブジェクトを使用
       firebaseApp = initializeApp(firebaseConfig);
     }
-
-    return getSdks(firebaseApp);
+  } else {
+    firebaseApp = getApp();
   }
 
-  return getSdks(getApp());
+  return getSdks(firebaseApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {

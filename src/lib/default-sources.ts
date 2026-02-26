@@ -10,7 +10,6 @@ export interface DefaultSource {
 
 /**
  * 新規ユーザーに自動的に追加されるデフォルトソースのリスト
- * Anthropic と Meta AI の最新かつ安定したフィードURLを使用します。
  */
 export const defaultSources: DefaultSource[] = [
   {

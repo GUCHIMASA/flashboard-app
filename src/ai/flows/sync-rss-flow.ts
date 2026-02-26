@@ -1,6 +1,9 @@
 'use server';
 /**
  * @fileOverview RSSフィードを同期し、AI要約を生成してFirestoreに保存するフロー。
+ * 
+ * 主要なAI企業（Anthropic, Meta, OpenAIなど）の多様なRSS形式から
+ * 画像とコンテンツを確実に抽出するように強化されています。
  */
 
 import { ai } from '@/ai/genkit';
@@ -16,13 +19,14 @@ const parser = new Parser({
       ['media:content', 'mediaContent', { keepArray: true }],
       ['media:thumbnail', 'mediaThumbnail'],
       ['content:encoded', 'contentEncoded'],
+      ['enclosure', 'enclosure'],
     ],
   },
   headers: {
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   },
-  timeout: 15000,
+  timeout: 20000, // ネットワーク遅延を考慮して長めに設定
 });
 
 const SyncRssInputSchema = z.object({
@@ -69,14 +73,14 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 直近3件に絞って処理
-        const items = feed.items.slice(0, 3);
+        // 直近5件まで処理対象を拡大
+        const items = feed.items.slice(0, 5);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
-          // 画像抽出の強化
+          // 画像抽出の高度なロジック
           let extractedImageUrl = '';
           
           // 1. Enclosure (Anthropic など)
@@ -85,16 +89,18 @@ const syncRssFlow = ai.defineFlow(
           } 
           // 2. Media:content (Meta, OpenAI など)
           else if (item.mediaContent && item.mediaContent.length > 0) {
-            extractedImageUrl = item.mediaContent[0].$.url;
+            // 配列の最初、または $.url がある場合
+            const media = item.mediaContent[0];
+            extractedImageUrl = media.$?.url || media.url || '';
           } 
           // 3. Media:thumbnail
-          else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
-            extractedImageUrl = item.mediaThumbnail.$.url;
+          else if (item.mediaThumbnail) {
+            extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
           } 
-          // 4. HTML content 内の img タグ (DeepMind, Product Hunt など)
-          else {
-            const content = item.contentEncoded || item.content || item.description || '';
-            const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
+          // 4. HTML content 内の img タグ抽出
+          if (!extractedImageUrl) {
+            const htmlContent = item.contentEncoded || item.content || item.description || '';
+            const imgMatch = htmlContent.match(/<img[^>]+src="([^">]+)"/);
             if (imgMatch && imgMatch[1]) {
               extractedImageUrl = imgMatch[1];
             }
@@ -105,12 +111,17 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           const existingData = existingSnapshot.docs[0]?.data();
+          // すでに存在し、かつAI要約(act)がある場合はスキップ
           const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
             try {
-              // 本文のクリーンアップ（タグ削除など）
-              const cleanContent = (item.contentSnippet || item.content || '').replace(/<[^>]*>?/gm, '').substring(0, 1500);
+              // 本文のクリーンアップ
+              const cleanContent = (item.contentSnippet || item.content || item.description || '')
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 2000);
 
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
@@ -123,7 +134,7 @@ const syncRssFlow = ai.defineFlow(
                   title: result.translatedTitle,
                   translatedTitle: result.translatedTitle,
                   originalTitle: item.title,
-                  content: cleanContent.substring(0, 2000),
+                  content: cleanContent,
                   act: result.act,
                   context: result.context,
                   effect: result.effect,
@@ -146,11 +157,11 @@ const syncRssFlow = ai.defineFlow(
                 }
               }
             } catch (e: any) {
-              console.warn(`[AI Skip] ${item.title}: AI processing failed.`, e.message);
+              console.warn(`[AI Skip] "${item.title}": AI processing failed.`, e.message);
             }
           }
-          // レート制限回避のための短いウェイト
-          await new Promise(resolve => setTimeout(resolve, 800));
+          // レート制限への配慮
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (e: any) {
         console.error(`[RSS Error] Source: ${source.name}`, e.message);
