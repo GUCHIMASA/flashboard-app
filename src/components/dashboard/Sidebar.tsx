@@ -68,12 +68,12 @@ export function DashboardSidebar({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-white/5 bg-card/60 backdrop-blur-3xl">
-      <SidebarHeader className="h-20 flex items-center px-6 border-b border-white/5">
+      <SidebarHeader className="h-20 flex items-center px-4 md:px-6 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-xl neo-blur animate-float">
+          <div className="bg-primary p-2 rounded-xl neo-blur animate-float shrink-0">
             <Zap className="w-6 h-6 text-white" />
           </div>
-          <h1 className="font-headline text-xl font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden uppercase">
+          <h1 className="font-headline text-xl font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden uppercase truncate">
             FLASHBOARD
           </h1>
         </div>
@@ -81,7 +81,7 @@ export function DashboardSidebar({
 
       <SidebarContent className="py-8">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4">
+          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 group-data-[collapsible=icon]:hidden">
             メインメニュー
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -92,7 +92,7 @@ export function DashboardSidebar({
                 tooltip="タイムライン"
                 className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
               >
-                <LayoutDashboard className="w-5 h-5" />
+                <LayoutDashboard className="w-5 h-5 shrink-0" />
                 <span className="font-bold">ストリーム</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -109,22 +109,22 @@ export function DashboardSidebar({
                 tooltip="ブックマーク"
                 className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
               >
-                <Bookmark className="w-5 h-5" />
+                <Bookmark className="w-5 h-5 shrink-0" />
                 <span className="font-bold">保管庫</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarSeparator className="mx-6 my-4 bg-white/5" />
+        <SidebarSeparator className="mx-6 my-4 bg-white/5 group-data-[collapsible=icon]:mx-2" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
+          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
             <span>信頼ソース</span>
             <ShieldCheck className="w-3 h-3 text-primary" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="px-3">
+            <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
               {reliableSources.map((source) => {
                 const favicon = getFaviconUrl(source.url);
                 return (
@@ -135,14 +135,14 @@ export function DashboardSidebar({
                       onClick={() => onSelectSource(source)}
                       tooltip={source.name}
                     >
-                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 mr-2 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
+                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
                         {favicon ? (
                           <img src={favicon} alt="" className="w-4 h-4 object-contain" />
                         ) : (
                           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                         )}
                       </div>
-                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100">{source.name}</span>
+                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100 group-data-[collapsible=icon]:hidden">{source.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -152,12 +152,12 @@ export function DashboardSidebar({
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
+          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
             <span>ディスカバリー</span>
             <Sparkles className="w-3 h-3 text-accent" />
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="px-3">
+            <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
               {discoverySources.map((source) => {
                 const favicon = getFaviconUrl(source.url);
                 return (
@@ -168,14 +168,14 @@ export function DashboardSidebar({
                       onClick={() => onSelectSource(source)}
                       tooltip={source.name}
                     >
-                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 mr-2 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
+                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
                         {favicon ? (
                           <img src={favicon} alt="" className="w-4 h-4 object-contain" />
                         ) : (
                           <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                         )}
                       </div>
-                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100">{source.name}</span>
+                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100 group-data-[collapsible=icon]:hidden">{source.name}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -186,7 +186,7 @@ export function DashboardSidebar({
 
         {user && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between">
+            <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
               <span>カスタム設定</span>
               <Plus 
                 onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
@@ -194,7 +194,7 @@ export function DashboardSidebar({
               />
             </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu className="px-3">
+              <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
                 {customSources.map((source) => {
                   const favicon = getFaviconUrl(source.url);
                   return (
@@ -206,14 +206,14 @@ export function DashboardSidebar({
                           onClick={() => onSelectSource(source)}
                           tooltip={source.name}
                         >
-                          <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 mr-2 shrink-0 flex items-center justify-center border border-white/5">
+                          <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5">
                             {favicon ? (
                               <img src={favicon} alt="" className="w-4 h-4 object-contain" />
                             ) : (
                               <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                             )}
                           </div>
-                          <span className="truncate text-xs font-medium">{source.name}</span>
+                          <span className="truncate text-xs font-medium group-data-[collapsible=icon]:hidden">{source.name}</span>
                         </SidebarMenuButton>
                         
                         <button 
@@ -221,7 +221,7 @@ export function DashboardSidebar({
                             e.stopPropagation();
                             if (onDeleteSource) onDeleteSource(source.id);
                           }}
-                          className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all"
+                          className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all group-data-[collapsible=icon]:hidden"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -234,26 +234,26 @@ export function DashboardSidebar({
           </SidebarGroup>
         )}
 
-        <SidebarSeparator className="mx-6 my-4 bg-white/5" />
+        <SidebarSeparator className="mx-6 my-4 bg-white/5 group-data-[collapsible=icon]:mx-2" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4">
+          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 group-data-[collapsible=icon]:hidden">
             サポート
           </SidebarGroupLabel>
-          <SidebarMenu className="px-3">
+          <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="利用規約">
                 <Link href="/terms" className="h-10 rounded-xl">
-                  <FileText className="w-4 h-4 mr-2" />
-                  <span className="text-xs">利用規約</span>
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span className="text-xs group-data-[collapsible=icon]:hidden">利用規約</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="プライバシー">
                 <Link href="/privacy" className="h-10 rounded-xl">
-                  <Lock className="w-4 h-4 mr-2" />
-                  <span className="text-xs">プライバシー</span>
+                  <Lock className="w-4 h-4 shrink-0" />
+                  <span className="text-xs group-data-[collapsible=icon]:hidden">プライバシー</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -261,7 +261,7 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-white/5">
+      <SidebarFooter className="p-6 border-t border-white/5 group-data-[collapsible=icon]:p-2">
         <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden">
           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
             FLASHBOARD v1.0
@@ -270,6 +270,9 @@ export function DashboardSidebar({
             <Link href="/terms" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">規約</Link>
             <Link href="/privacy" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">プライバシー</Link>
           </div>
+        </div>
+        <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
+          <Zap className="w-4 h-4 text-primary/40" />
         </div>
       </SidebarFooter>
     </Sidebar>
