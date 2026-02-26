@@ -14,17 +14,21 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const secret = searchParams.get('secret');
 
-  // セキュリティチェック
+  // セキュリティチェック: 環境変数が未設定の場合は安全のため実行を拒否
+  if (!process.env.CRON_SECRET) {
+    console.error('[Cron Error] CRON_SECRET environment variable is not set.');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
   if (!secret || secret !== process.env.CRON_SECRET) {
-    console.error('[Cron Error] Unauthorized access attempt.');
+    console.error('[Cron Error] Unauthorized access attempt with secret:', secret);
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     console.log('[Cron Sync] Starting automated sync...');
     
-    // 自動実行時は、初期ソース（主要ソース）を対象に、管理者のメールアドレスで実行
-    // ※ADMIN_EMAILはフロー内の定数と一致させる必要があります
+    // 管理者のメールアドレス（フロー内のバリデーションを通過させるために必要）
     const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
     const result = await syncRss({
@@ -39,6 +43,7 @@ export async function GET(request: Request) {
     console.log('[Cron Sync] Completed successfully:', result);
     return NextResponse.json({
       message: 'Automated sync completed',
+      timestamp: new Date().toISOString(),
       ...result
     });
   } catch (error: any) {
