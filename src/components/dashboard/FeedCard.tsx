@@ -4,10 +4,7 @@
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, ArrowRight } from 'lucide-react';
-import { TbWaveSawTool } from 'react-icons/tb';
-import { IoReorderThree } from 'react-icons/io5';
-import { PiWavesBold } from 'react-icons/pi';
+import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, ArrowRight, Zap, Search, Waves } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -74,6 +71,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // シェアURLを個別記事ページに変更
     const shareUrl = `${window.location.origin}/article/${article.id}`;
     const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
@@ -143,7 +141,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               {article.act && (
                 <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <TbWaveSawTool className="w-4 h-4" />
+                    <Zap className="w-4 h-4" />
                   </div>
                   <p className="font-bold flex-1 text-base leading-snug">{article.act}</p>
                 </div>
@@ -151,7 +149,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               {article.context && (
                 <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <IoReorderThree className="w-4 h-4" />
+                    <Search className="w-4 h-4" />
                   </div>
                   <p className="text-foreground/90 flex-1">{article.context}</p>
                 </div>
@@ -159,7 +157,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               {article.effect && (
                 <div className="flex items-start gap-3 text-sm leading-relaxed">
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <PiWavesBold className="w-4 h-4" />
+                    <Waves className="w-4 h-4" />
                   </div>
                   <p className="text-foreground/90 flex-1">{article.effect}</p>
                 </div>
