@@ -61,10 +61,11 @@ export default function Home() {
     if (!db) return null;
     return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(100));
   }, [db]);
-  const { data: firestoreArticles, loading: articlesLoading } = useCollection(articlesQuery);
+  const { data: firestoreArticles, isLoading: articlesLoading } = useCollection(articlesQuery);
 
   const normalizedArticles = useMemo(() => {
-    return ((firestoreArticles as any[]) || []).map(a => {
+    if (!firestoreArticles) return [];
+    return (firestoreArticles as any[]).map(a => {
       let dateStr = a.publishedAt;
       if (!dateStr && a.createdAt?.toDate) {
         dateStr = a.createdAt.toDate().toISOString();
@@ -122,6 +123,9 @@ export default function Home() {
     });
   }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
+  // Loading state helper to prevent "No Articles" flash
+  const isInitialLoading = articlesLoading && normalizedArticles.length === 0;
+
   const handleRefresh = async () => {
     if (isRefreshing) return;
     
@@ -175,7 +179,7 @@ export default function Home() {
         <Header />
         
         {/* フルワイド・ヒーロースライダー */}
-        {filteredArticles.length > 0 && (
+        {!isInitialLoading && filteredArticles.length > 0 ? (
           <section className="relative w-full border-b border-white/5">
             <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
               <CarouselContent>
@@ -209,7 +213,9 @@ export default function Home() {
               </CarouselContent>
             </Carousel>
           </section>
-        )}
+        ) : isInitialLoading ? (
+          <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
+        ) : null}
 
         <div className="flex-1 p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
           <section className="space-y-6">
@@ -230,7 +236,7 @@ export default function Home() {
               <div className="flex items-center gap-3">
                 <div className="bg-muted px-4 py-2 rounded-full text-xs font-black text-muted-foreground flex items-center gap-2 border border-white/5">
                   <Database className="w-3.5 h-3.5 text-primary" />
-                  {filteredArticles.length} ARTICLES
+                  {isInitialLoading ? "LOADING..." : `${filteredArticles.length} ARTICLES`}
                 </div>
                 {user?.email === ADMIN_EMAIL && (
                   <Button variant="outline" size="sm" className="rounded-full h-10 px-6 text-xs font-black border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
@@ -240,10 +246,10 @@ export default function Home() {
               </div>
             </div>
 
-            {articlesLoading && filteredArticles.length === 0 ? (
+            {isInitialLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse border border-white/5" />
+                  <div key={i} className="h-64 rounded-2xl bg-muted animate-pulse border border-white/5" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
