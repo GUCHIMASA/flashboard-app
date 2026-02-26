@@ -10,11 +10,12 @@ export interface DefaultSource {
 
 /**
  * 新規ユーザーに自動的に追加されるデフォルトソースのリスト
+ * Anthropic と Meta AI の最新かつ安定したフィードURLを使用します。
  */
 export const defaultSources: DefaultSource[] = [
   {
     name: "Anthropic News",
-    url: "https://www.anthropic.com/news.xml",
+    url: "https://www.anthropic.com/index.xml",
   },
   {
     name: "Meta AI Blog",

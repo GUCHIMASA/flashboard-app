@@ -15,13 +15,14 @@ const parser = new Parser({
     item: [
       ['media:content', 'mediaContent', { keepArray: true }],
       ['media:thumbnail', 'mediaThumbnail'],
+      ['content:encoded', 'contentEncoded'],
     ],
   },
   headers: {
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -64,7 +65,7 @@ const syncRssFlow = ai.defineFlow(
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`[RSS Sync] Fetching: ${source.name}`);
+        console.log(`[RSS Sync] Fetching: ${source.name} (${source.url})`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
@@ -75,18 +76,28 @@ const syncRssFlow = ai.defineFlow(
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
-          // 画像抽出
+          // 画像抽出の強化
           let extractedImageUrl = '';
+          
+          // 1. Enclosure (Anthropic など)
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
-          } else if (item.mediaContent && item.mediaContent.length > 0) {
+          } 
+          // 2. Media:content (Meta, OpenAI など)
+          else if (item.mediaContent && item.mediaContent.length > 0) {
             extractedImageUrl = item.mediaContent[0].$.url;
-          } else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
+          } 
+          // 3. Media:thumbnail
+          else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
             extractedImageUrl = item.mediaThumbnail.$.url;
-          } else {
-            const content = item.content || item.description || '';
+          } 
+          // 4. HTML content 内の img タグ (DeepMind, Product Hunt など)
+          else {
+            const content = item.contentEncoded || item.content || item.description || '';
             const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch && imgMatch[1]) extractedImageUrl = imgMatch[1];
+            if (imgMatch && imgMatch[1]) {
+              extractedImageUrl = imgMatch[1];
+            }
           }
 
           const articlesRef = collection(firestore, 'articles');
@@ -98,9 +109,12 @@ const syncRssFlow = ai.defineFlow(
 
           if (needsProcessing) {
             try {
+              // 本文のクリーンアップ（タグ削除など）
+              const cleanContent = (item.contentSnippet || item.content || '').replace(/<[^>]*>?/gm, '').substring(0, 1500);
+
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
-                content: (item.contentSnippet || item.content || '').substring(0, 1500),
+                content: cleanContent,
                 sourceName: source.name
               });
 
@@ -109,7 +123,7 @@ const syncRssFlow = ai.defineFlow(
                   title: result.translatedTitle,
                   translatedTitle: result.translatedTitle,
                   originalTitle: item.title,
-                  content: (item.contentSnippet || item.content || '').substring(0, 2000),
+                  content: cleanContent.substring(0, 2000),
                   act: result.act,
                   context: result.context,
                   effect: result.effect,
@@ -136,7 +150,7 @@ const syncRssFlow = ai.defineFlow(
             }
           }
           // レート制限回避のための短いウェイト
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
       } catch (e: any) {
         console.error(`[RSS Error] Source: ${source.name}`, e.message);
