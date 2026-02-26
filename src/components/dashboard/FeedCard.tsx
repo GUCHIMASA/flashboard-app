@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, ArrowRight } from 'lucide-react';
 import { TbWaveSawTool } from 'react-icons/tb';
 import { IoReorderThree } from 'react-icons/io5';
 import { PiWavesBold } from 'react-icons/pi';
@@ -15,6 +16,7 @@ import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface FeedCardProps {
   article: Article;
@@ -72,9 +74,10 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const shareUrl = `${window.location.origin}/article/${article.id}`;
     const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
-    const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-    window.open(shareUrl, '_blank');
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(twitterUrl, '_blank');
   };
 
   return (
@@ -88,7 +91,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
     >
       <CardHeader className={cn(
         "transition-all duration-300",
-        isActive ? "p-4 space-y-3" : "p-1.5 space-y-1"
+        isActive ? "p-4 space-y-3" : "p-2 space-y-1.5"
       )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
@@ -110,7 +113,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
         
         <h3 className={cn(
           "font-black leading-tight transition-all duration-300",
-          isActive ? "text-lg text-primary" : "text-sm text-foreground truncate"
+          isActive ? "text-lg text-primary" : "text-base text-foreground truncate"
         )}>
           {article.translatedTitle || article.title}
         </h3>
@@ -121,7 +124,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               <Badge 
                 key={tag} 
                 variant="outline" 
-                className="text-[9px] py-0 px-1.5 h-4 border-muted/50 text-muted-foreground bg-muted/20 shrink-0 whitespace-nowrap"
+                className="text-[9px] py-0 px-1.5 h-4 border-muted/50 text-muted-foreground bg-muted/20 shrink-0 whitespace-nowrap font-bold"
               >
                 #{tag}
               </Badge>
@@ -176,15 +179,10 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
               </div>
             </div>
             <div className='flex items-center justify-stretch w-full gap-2 pt-2'>
-              <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
-                <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                  記事を読む <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="w-full h-10 font-bold" onClick={(e) => e.stopPropagation()}>
-                <a href={`https://translate.google.com/translate?u=${article.link}&sl=en&tl=ja`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-                  全文翻訳 <ExternalLink className="h-4 w-4" />
-                </a>
+              <Button asChild variant="default" size="sm" className="w-full h-10 font-black" onClick={(e) => e.stopPropagation()}>
+                <Link href={`/article/${article.id}`} className="flex items-center gap-1">
+                  詳細を読む <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </div>
           </CardFooter>
