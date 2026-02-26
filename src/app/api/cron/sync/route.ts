@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import { INITIAL_SOURCES } from '@/app/lib/mock-data';
@@ -21,8 +22,8 @@ export async function GET(request: Request) {
   try {
     console.log('[Cron Sync] Starting automated sync...');
     
-    // 管理者用のダミーメール
-    const ADMIN_EMAIL = 'admin@example.com';
+    // 管理者用メールアドレス
+    const ADMIN_EMAIL = 'kawa_guchi.ai@gmail.com';
 
     const result = await syncRss({
       sources: INITIAL_SOURCES.map(s => ({
