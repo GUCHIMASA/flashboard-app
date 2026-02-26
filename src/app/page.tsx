@@ -173,76 +173,81 @@ export default function Home() {
 
       <main className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header />
-        <div className="flex-1 p-4 md:p-8 space-y-4 max-w-[1600px] mx-auto w-full">
-          {activeCategory === 'All' && !selectedSourceName && !selectedTag && normalizedArticles.length > 0 && (
-            <section className="relative overflow-hidden rounded-3xl shadow-xl mb-6">
-              <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
-                <CarouselContent>
-                  {normalizedArticles.slice(0, 5).map((article) => (
-                    <CarouselItem key={article.id}>
-                      <div className="relative h-[250px] md:h-[400px] w-full overflow-hidden">
-                        <Image 
-                          src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
-                          alt={article.title}
-                          fill
-                          className="object-cover"
-                          priority
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                        <div className="absolute bottom-0 left-0 p-6 md:p-12 w-full">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Badge className="bg-primary border-none text-[10px] h-5">{article.sourceName}</Badge>
-                            <span className="text-[10px] text-white/70 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
-                            </span>
-                          </div>
-                          <h1 className="text-2xl md:text-4xl font-black mb-3 text-white line-clamp-2 leading-tight">
-                            {article.translatedTitle || article.title}
-                          </h1>
+        
+        {/* フルワイド・ヒーロースライダー */}
+        {filteredArticles.length > 0 && (
+          <section className="relative w-full border-b border-white/5">
+            <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
+              <CarouselContent>
+                {filteredArticles.slice(0, 5).map((article) => (
+                  <CarouselItem key={article.id}>
+                    <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden">
+                      <Image 
+                        src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
+                        alt={article.title}
+                        fill
+                        className="object-cover"
+                        priority
+                        sizes="100vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                      <div className="absolute bottom-0 left-0 p-6 md:p-16 w-full max-w-[1600px] mx-auto right-0">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Badge className="bg-primary border-none text-[10px] md:text-xs h-6 md:h-7 px-3">{article.sourceName}</Badge>
+                          <span className="text-xs md:text-sm text-white/70 font-bold flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" />
+                            {format(new Date(article.publishedAt), 'yyyy/MM/dd HH:mm')}
+                          </span>
                         </div>
+                        <h1 className="text-2xl md:text-5xl font-black mb-4 text-white line-clamp-2 leading-tight tracking-tighter">
+                          {article.translatedTitle || article.title}
+                        </h1>
                       </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
-            </section>
-          )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
+          </section>
+        )}
 
-          <section className="space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex-1 p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto w-full">
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-0.5 rounded-full">
-                  <TabsList className="bg-transparent h-8">
-                    <TabsTrigger value="All" className="rounded-full px-3 text-xs">すべて</TabsTrigger>
-                    <TabsTrigger value="Reliable" className="rounded-full px-3 text-xs">信頼</TabsTrigger>
-                    <TabsTrigger value="Discovery" className="rounded-full px-3 text-xs">発見</TabsTrigger>
-                    <TabsTrigger value="Bookmarks" className="rounded-full px-2"><Bookmark className="w-3.5 h-3.5" /></TabsTrigger>
+                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-muted p-1 rounded-full border border-white/5 shadow-inner">
+                  <TabsList className="bg-transparent h-10">
+                    <TabsTrigger value="All" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">すべて</TabsTrigger>
+                    <TabsTrigger value="Reliable" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">信頼</TabsTrigger>
+                    <TabsTrigger value="Discovery" className="rounded-full px-5 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">発見</TabsTrigger>
+                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Bookmark className="w-4 h-4" />
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
               
-              <div className="flex items-center gap-2">
-                <div className="bg-muted px-2 py-1 rounded-full text-[9px] font-bold text-muted-foreground flex items-center gap-1.5">
-                  <Database className="w-2.5 h-2.5 text-primary" />
-                  {filteredArticles.length} 件
+              <div className="flex items-center gap-3">
+                <div className="bg-muted px-4 py-2 rounded-full text-xs font-black text-muted-foreground flex items-center gap-2 border border-white/5">
+                  <Database className="w-3.5 h-3.5 text-primary" />
+                  {filteredArticles.length} ARTICLES
                 </div>
                 {user?.email === ADMIN_EMAIL && (
-                  <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "同期中..." : "最新記事を取得"}
+                  <Button variant="outline" size="sm" className="rounded-full h-10 px-6 text-xs font-black border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
+                    {isRefreshing ? "SYNCING..." : "SYNC NOW"}
                   </Button>
                 )}
               </div>
             </div>
 
             {articlesLoading && filteredArticles.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
+                  <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse border border-white/5" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {filteredArticles.map((article) => (
                   <div 
                     key={article.id} 
@@ -257,21 +262,22 @@ export default function Home() {
                 ))}
               </div>
             ) : (
-              <div className="py-20 text-center bg-muted/10 rounded-3xl border border-dashed border-muted">
-                <Info className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-bold mb-1">該当する記事はありません</h3>
+              <div className="py-24 text-center bg-muted/10 rounded-[2.5rem] border border-dashed border-white/10">
+                <Info className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-xl font-black mb-2">該当する記事はありません</h3>
+                <p className="text-sm text-muted-foreground">条件を変更して再度お試しください。</p>
               </div>
             )}
           </section>
 
-          <footer className="py-12 border-t border-border/50 text-center space-y-4">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          <footer className="py-16 border-t border-white/5 text-center space-y-6 mt-12">
+            <div className="flex items-center justify-center gap-10">
+              <Link href="/terms" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-widest">利用規約</Link>
+              <Link href="/privacy" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-widest">プライバシーポリシー</Link>
+            </div>
+            <p className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.3em]">
               © 2024 FLASHBOARD
             </p>
-            <div className="flex items-center justify-center gap-6">
-              <Link href="/terms" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">利用規約</Link>
-              <Link href="/privacy" className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors">プライバシーポリシー</Link>
-            </div>
           </footer>
         </div>
       </main>
