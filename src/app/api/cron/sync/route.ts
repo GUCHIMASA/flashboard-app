@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     console.log('[Cron Sync] Starting automated sync...');
     
     // 管理者用メールアドレス
-    const ADMIN_EMAIL = 'kawa_guchi.ai@gmail.com';
+    const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
     const result = await syncRss({
       sources: INITIAL_SOURCES.map(s => ({

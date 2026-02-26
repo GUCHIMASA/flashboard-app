@@ -24,7 +24,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import Link from 'next/link';
 
 // 管理者用メールアドレス (このアドレスのユーザーのみが同期を実行可能)
-const ADMIN_EMAIL = 'kawa_guchi.ai@gmail.com';
+const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 export default function Home() {
   const { user } = useUser();
@@ -128,12 +128,12 @@ export default function Home() {
   const handleRefresh = async () => {
     if (isRefreshing) return;
     
-    // 厳格な権限チェック: 指定された管理者メールアドレスのみ許可
+    // 厳格な権限チェック
     if (user?.email !== ADMIN_EMAIL) {
       toast({ 
         variant: "destructive", 
         title: "権限エラー", 
-        description: "この操作を実行する権限がありません。管理者としてログインしてください。" 
+        description: "この操作を実行する権限がありません。" 
       });
       return;
     }
@@ -238,7 +238,7 @@ export default function Home() {
                   <Database className="w-2.5 h-2.5 text-primary" />
                   {filteredArticles.length} 件
                 </div>
-                {/* 管理者（kawa_guchi.ai@gmail.com）のみ同期ボタンを表示。一般ユーザーには一切表示されません。 */}
+                {/* 管理者のみ同期ボタンを表示 */}
                 {user?.email === ADMIN_EMAIL && (
                   <Button variant="outline" size="sm" className="rounded-full h-8 text-xs border-primary/30 hover:bg-primary/5" onClick={handleRefresh} disabled={isRefreshing}>
                     {isRefreshing ? "同期中..." : "最新記事を取得"}
