@@ -72,7 +72,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const shareText = `「${article.translatedTitle || article.title}」 ⚡${article.act || ''}`;
+    const shareText = `「${article.translatedTitle || article.title}」 #AISynapse`;
     const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
     window.open(shareUrl, '_blank');
   };
@@ -142,7 +142,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <TbWaveSawTool className="w-4 h-4" />
                   </div>
-                  <p className="font-bold flex-1 text-base">▲{article.act}</p>
+                  <p className="font-bold flex-1 text-base">{article.act}</p>
                 </div>
               )}
               {article.context && (
@@ -150,7 +150,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <IoReorderThree className="w-4 h-4" />
                   </div>
-                  <p className="text-foreground/90 flex-1">●{article.context}</p>
+                  <p className="text-foreground/90 flex-1">{article.context}</p>
                 </div>
               )}
               {article.effect && (
@@ -158,7 +158,7 @@ export function FeedCard({ article, isActive = false }: FeedCardProps) {
                   <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
                     <PiWavesBold className="w-4 h-4" />
                   </div>
-                  <p className="text-foreground/90 flex-1">■{article.effect}</p>
+                  <p className="text-foreground/90 flex-1">{article.effect}</p>
                 </div>
               )}
             </div>
