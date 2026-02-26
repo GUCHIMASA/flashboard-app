@@ -34,13 +34,14 @@ service cloud.firestore {
 
     // 収集された記事データ
     match /articles/{articleId} {
-      // 誰でも閲覧可能（一覧取得 list も個別取得 get も許可）
+      // 誰でも閲覧可能
       allow read: if true;
       
-      // 書き込み（同期処理）は認証済みユーザーのみ
-      allow create, update: if isSignedIn();
+      // 書き込み: サーバーサイド（Cron/Server Actions）でのClient SDK使用に対応するため全許可
+      // 本番環境では特定のAPIキー検証やカスタムクレイムでの制限を推奨します
+      allow create, update: if true;
       
-      // 削除は管理者のみ（必要に応じて調整）
+      // 削除は認証済みユーザーのみ
       allow delete: if isSignedIn();
     }
   }

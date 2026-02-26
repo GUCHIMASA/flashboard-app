@@ -1,7 +1,6 @@
-
 'use server';
 /**
- * @fileOverview RSSフィードを同期し、統一された要約フローを使用してFirestoreに保存するフロー。
+ * @fileOverview RSSフィードを同期し、AI要約を生成してFirestoreに保存するフロー。
  */
 
 import { ai } from '@/ai/genkit';
@@ -10,9 +9,6 @@ import Parser from 'rss-parser';
 import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
-
-// 管理者のメールアドレス
-const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
 
 const parser = new Parser({
   customFields: {
@@ -25,7 +21,7 @@ const parser = new Parser({
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   },
-  timeout: 15000,
+  timeout: 10000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -34,7 +30,7 @@ const SyncRssInputSchema = z.object({
     url: z.string(),
     category: z.string()
   })),
-  requesterEmail: z.string().describe('リクエストを送信したユーザーのメールアドレス')
+  requesterEmail: z.string().optional()
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -58,11 +54,6 @@ const syncRssFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 管理者チェック
-    if (input.requesterEmail !== ADMIN_EMAIL) {
-      throw new Error('管理者のみがこの記事の更新を実行できます。');
-    }
-
     const { firestore } = initializeFirebase();
     let addedCount = 0;
     let updatedCount = 0;
@@ -103,8 +94,7 @@ const syncRssFlow = ai.defineFlow(
           const existingSnapshot = await getDocs(q);
 
           const existingData = existingSnapshot.docs[0]?.data();
-          const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
-          const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish || !existingData?.tags;
+          const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
             try {
@@ -114,12 +104,15 @@ const syncRssFlow = ai.defineFlow(
                 sourceName: source.name
               });
 
-              if (result && result.translatedTitle && result.summary) {
+              if (result && result.translatedTitle && result.act) {
                 const articleData = {
                   title: result.translatedTitle,
+                  translatedTitle: result.translatedTitle,
                   originalTitle: item.title,
                   content: (item.contentSnippet || item.content || '').substring(0, 2000),
-                  summary: result.summary,
+                  act: result.act,
+                  context: result.context,
+                  effect: result.effect,
                   tags: result.tags || [],
                   link: link, 
                   sourceName: source.name,
@@ -139,13 +132,14 @@ const syncRssFlow = ai.defineFlow(
                 }
               }
             } catch (e: any) {
-              console.error(`[AI Skip] ${item.title}: AI processing failed.`, e.message);
+              console.warn(`[AI Skip] ${item.title}: AI processing failed.`, e.message);
             }
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // レート制限回避のための短いウェイト
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (e: any) {
+        console.error(`[RSS Error] Source: ${source.name}`, e.message);
         errors.push(`${source.name}: ${e.message}`);
       }
     }

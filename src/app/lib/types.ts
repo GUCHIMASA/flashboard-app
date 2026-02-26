@@ -12,8 +12,11 @@ export interface FeedSource {
 export interface Article {
   id: string;
   title: string;
+  translatedTitle?: string;
   content: string;
-  summary?: string;
+  act?: string;
+  context?: string;
+  effect?: string;
   sourceName: string;
   sourceUrl?: string; // オプショナルに変更
   publishedAt: string;
