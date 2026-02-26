@@ -107,7 +107,7 @@ export function DashboardSidebar({
       <SidebarContent className="py-4">
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-3 group-data-[collapsible=icon]:hidden">
-            CORE MENU
+            メインメニュー
           </SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -118,7 +118,7 @@ export function DashboardSidebar({
                 className="h-11 rounded-xl data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
               >
                 <LayoutDashboard className="w-5 h-5 shrink-0" />
-                <span className="font-black text-xs uppercase tracking-widest group-data-[collapsible=icon]:hidden">Stream</span>
+                <span className="font-black text-xs uppercase tracking-widest group-data-[collapsible=icon]:hidden">ストリーム</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -135,7 +135,7 @@ export function DashboardSidebar({
                 className="h-11 rounded-xl data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
               >
                 <Bookmark className="w-5 h-5 shrink-0" />
-                <span className="font-black text-xs uppercase tracking-widest group-data-[collapsible=icon]:hidden">Vault</span>
+                <span className="font-black text-xs uppercase tracking-widest group-data-[collapsible=icon]:hidden">保管庫</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -145,7 +145,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-3 flex items-center justify-between group-data-[collapsible=icon]:hidden">
-            <span>RELIABLE</span>
+            <span>信頼</span>
             <ShieldCheck className="w-3.5 h-3.5 text-primary" />
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -167,7 +167,7 @@ export function DashboardSidebar({
 
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-3 flex items-center justify-between group-data-[collapsible=icon]:hidden">
-            <span>DISCOVERY</span>
+            <span>発見</span>
             <Sparkles className="w-3.5 h-3.5 text-accent" />
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -190,7 +190,7 @@ export function DashboardSidebar({
         {user && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground/40 mb-3 flex items-center justify-between group-data-[collapsible=icon]:hidden">
-              <span>CUSTOM</span>
+              <span>カスタム</span>
               <Plus 
                 onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
                 className="w-4 h-4 text-primary cursor-pointer hover:rotate-90 transition-transform" 
@@ -229,7 +229,7 @@ export function DashboardSidebar({
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               <Database className="w-3.5 h-3.5 text-primary" />
-              STATUS
+              ステータス
             </div>
             <Badge variant="secondary" className="text-[10px] font-black px-3 py-0.5 h-5 bg-primary/10 text-primary border-none rounded-full">
               {articleCount}
@@ -245,7 +245,7 @@ export function DashboardSidebar({
               disabled={isRefreshing}
             >
               <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-              {isRefreshing ? "SYNCING..." : "SYNC NOW"}
+              {isRefreshing ? "同期中..." : "今すぐ同期"}
             </Button>
           )}
         </div>

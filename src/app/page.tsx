@@ -160,7 +160,6 @@ export default function Home() {
       setActiveCategory('Bookmarks');
       setSelectedSourceName(null);
     } else if (selectedSourceName === source.name) {
-      // トグル動作: 既に選択されているソースを再度クリックしたら解除
       setActiveCategory('All');
       setSelectedSourceName(null);
     } else {
@@ -191,7 +190,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col min-w-0 max-w-full relative">
         <Header />
         
-        {/* ヒーローエリア（フルワイド） */}
+        {/* ヒーローエリア */}
         {!isInitialLoading && filteredArticles.length > 0 ? (
           <section className="relative w-full border-b border-white/5">
             <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
@@ -236,9 +235,9 @@ export default function Home() {
             <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
               <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
                 <TabsList className="bg-transparent h-8">
-                  <TabsTrigger value="All" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">STREAM</TabsTrigger>
-                  <TabsTrigger value="Reliable" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">RELIABLE</TabsTrigger>
-                  <TabsTrigger value="Discovery" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">DISCOVERY</TabsTrigger>
+                  <TabsTrigger value="All" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">すべて</TabsTrigger>
+                  <TabsTrigger value="Reliable" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">信頼</TabsTrigger>
+                  <TabsTrigger value="Discovery" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">発見</TabsTrigger>
                   <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary">
                     <Bookmark className="w-3.5 h-3.5" />
                   </TabsTrigger>
@@ -304,7 +303,7 @@ export default function Home() {
               <div className="py-32 text-center bg-muted/10 rounded-[3rem] border border-dashed border-white/10">
                 <Info className="w-16 h-16 mx-auto text-muted-foreground/30 mb-6" />
                 <h3 className="text-2xl font-black mb-3">該当する記事はありません</h3>
-                <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">NO ARTICLES FOUND</p>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">記事が見つかりませんでした</p>
               </div>
             )}
 
