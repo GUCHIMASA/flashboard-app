@@ -173,10 +173,9 @@ export default function Home() {
   return (
     <SidebarProvider defaultOpen={false}>
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-        {/* 固定ヘッダー: SidebarTriggerが含まれるためSidebarProviderの内部に配置 */}
+        {/* Header must be inside SidebarProvider to use SidebarTrigger */}
         <Header />
         
-        {/* サイドバーとメインコンテンツのコンテナ: flex-1 で残りの高さを占有 */}
         <div className="flex flex-1 overflow-hidden">
           <DashboardSidebar 
             activeCategory={activeCategory as any} 
@@ -195,7 +194,6 @@ export default function Home() {
             isAdmin={user?.email === ADMIN_EMAIL}
           />
 
-          {/* メインスクロール領域: ここに overflow-y-auto を指定 */}
           <main className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar bg-background">
             {/* ヒーローエリア */}
             {!isInitialLoading && filteredArticles.length > 0 ? (
@@ -236,7 +234,7 @@ export default function Home() {
               <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
             ) : null}
 
-            {/* スティッキーフィルターメニューバー: mainのトップに吸着 */}
+            {/* スティッキーフィルターバー - main 要素内で top-0 に固定 */}
             <section className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full shadow-sm">
               <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
                 <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
@@ -338,4 +336,3 @@ export default function Home() {
     </SidebarProvider>
   );
 }
-
