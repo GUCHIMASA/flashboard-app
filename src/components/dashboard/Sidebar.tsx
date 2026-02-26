@@ -42,6 +42,35 @@ interface DashboardSidebarProps {
   onAddSource: () => void;
 }
 
+/**
+ * 取得元のアイコンを管理するコンポーネント
+ */
+const SourceIcon = ({ url, name, isActive }: { url: string; name: string; isActive?: boolean }) => {
+  const getFaviconUrl = (url: string) => {
+    try {
+      const domain = new URL(url).hostname;
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    } catch {
+      return null;
+    }
+  };
+
+  const favicon = getFaviconUrl(url);
+
+  return (
+    <div className={cn(
+      "w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 transition-colors",
+      isActive && "border-primary/50 bg-primary/10"
+    )}>
+      {favicon ? (
+        <img src={favicon} alt={name} className="w-4 h-4 object-contain" />
+      ) : (
+        <Globe className="w-3.5 h-3.5 text-muted-foreground" />
+      )}
+    </div>
+  );
+};
+
 export function DashboardSidebar({ 
   activeCategory, 
   selectedSourceName,
@@ -53,35 +82,26 @@ export function DashboardSidebar({
   const { user } = useUser();
   const { toast } = useToast();
 
-  const getFaviconUrl = (url: string) => {
-    try {
-      const domain = new URL(url).hostname;
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
-    } catch {
-      return null;
-    }
-  };
-
   const reliableSources = sources.filter(s => s.category === 'Reliable');
   const discoverySources = sources.filter(s => s.category === 'Discovery');
   const customSources = sources.filter(s => s.category === 'Custom');
 
   return (
     <Sidebar collapsible="icon" className="border-r border-white/5 bg-card/60 backdrop-blur-3xl">
-      <SidebarHeader className="h-20 flex items-center px-4 md:px-6 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-xl neo-blur animate-float shrink-0">
-            <Zap className="w-6 h-6 text-white" />
+      <SidebarHeader className="h-16 flex items-center px-4 border-b border-white/5">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className="bg-primary p-1.5 rounded-lg shrink-0">
+            <Zap className="w-5 h-5 text-white" />
           </div>
-          <h1 className="font-headline text-xl font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden uppercase truncate">
+          <h1 className="font-headline text-lg font-black tracking-tighter text-foreground group-data-[collapsible=icon]:hidden uppercase truncate">
             FLASHBOARD
           </h1>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="py-8">
+      <SidebarContent className="py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-2 group-data-[collapsible=icon]:hidden">
             メインメニュー
           </SidebarGroupLabel>
           <SidebarMenu>
@@ -90,10 +110,10 @@ export function DashboardSidebar({
                 isActive={activeCategory === 'All' && !selectedSourceName} 
                 onClick={() => onSelectSource('All')}
                 tooltip="タイムライン"
-                className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
+                className="h-10 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
                 <LayoutDashboard className="w-5 h-5 shrink-0" />
-                <span className="font-bold">ストリーム</span>
+                <span className="font-bold group-data-[collapsible=icon]:hidden">ストリーム</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
@@ -107,143 +127,107 @@ export function DashboardSidebar({
                   onSelectSource({ id: 'bookmarks', name: 'Bookmarks', url: '', category: 'Bookmarks' as any });
                 }}
                 tooltip="ブックマーク"
-                className="h-12 px-6 rounded-none border-l-2 border-transparent data-[active=true]:border-primary data-[active=true]:bg-primary/5"
+                className="h-10 data-[active=true]:bg-primary/5 data-[active=true]:text-primary"
               >
                 <Bookmark className="w-5 h-5 shrink-0" />
-                <span className="font-bold">保管庫</span>
+                <span className="font-bold group-data-[collapsible=icon]:hidden">保管庫</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarSeparator className="mx-6 my-4 bg-white/5 group-data-[collapsible=icon]:mx-2" />
+        <SidebarSeparator className="mx-4 my-2 bg-white/5" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-2 flex items-center justify-between group-data-[collapsible=icon]:hidden">
             <span>信頼ソース</span>
             <ShieldCheck className="w-3 h-3 text-primary" />
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
-              {reliableSources.map((source) => {
-                const favicon = getFaviconUrl(source.url);
-                return (
-                  <SidebarMenuItem key={source.id}>
-                    <SidebarMenuButton 
-                      className="h-10 rounded-xl hover:bg-white/5"
-                      isActive={selectedSourceName === source.name}
-                      onClick={() => onSelectSource(source)}
-                      tooltip={source.name}
-                    >
-                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
-                        {favicon ? (
-                          <img src={favicon} alt="" className="w-4 h-4 object-contain" />
-                        ) : (
-                          <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                        )}
-                      </div>
-                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100 group-data-[collapsible=icon]:hidden">{source.name}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarMenu>
+            {reliableSources.map((source) => (
+              <SidebarMenuItem key={source.id}>
+                <SidebarMenuButton 
+                  className="h-10 rounded-xl"
+                  isActive={selectedSourceName === source.name}
+                  onClick={() => onSelectSource(source)}
+                  tooltip={source.name}
+                >
+                  <SourceIcon url={source.url} name={source.name} isActive={selectedSourceName === source.name} />
+                  <span className="truncate text-xs font-medium group-data-[collapsible=icon]:hidden">{source.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-2 flex items-center justify-between group-data-[collapsible=icon]:hidden">
             <span>ディスカバリー</span>
             <Sparkles className="w-3 h-3 text-accent" />
           </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
-              {discoverySources.map((source) => {
-                const favicon = getFaviconUrl(source.url);
-                return (
-                  <SidebarMenuItem key={source.id}>
-                    <SidebarMenuButton 
-                      className="h-10 rounded-xl hover:bg-white/5"
-                      isActive={selectedSourceName === source.name}
-                      onClick={() => onSelectSource(source)}
-                      tooltip={source.name}
-                    >
-                      <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5 group-data-[active=true]:border-primary/50 transition-colors">
-                        {favicon ? (
-                          <img src={favicon} alt="" className="w-4 h-4 object-contain" />
-                        ) : (
-                          <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                        )}
-                      </div>
-                      <span className="truncate text-xs font-medium opacity-70 group-data-[active=true]:opacity-100 group-data-[collapsible=icon]:hidden">{source.name}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarMenu>
+            {discoverySources.map((source) => (
+              <SidebarMenuItem key={source.id}>
+                <SidebarMenuButton 
+                  className="h-10 rounded-xl"
+                  isActive={selectedSourceName === source.name}
+                  onClick={() => onSelectSource(source)}
+                  tooltip={source.name}
+                >
+                  <SourceIcon url={source.url} name={source.name} isActive={selectedSourceName === source.name} />
+                  <span className="truncate text-xs font-medium group-data-[collapsible=icon]:hidden">{source.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
         </SidebarGroup>
 
         {user && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 flex items-center justify-between group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-2 flex items-center justify-between group-data-[collapsible=icon]:hidden">
               <span>カスタム設定</span>
               <Plus 
                 onClick={(e) => { e.stopPropagation(); onAddSource(); }} 
                 className="w-4 h-4 text-primary cursor-pointer hover:scale-125 transition-transform" 
               />
             </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
-                {customSources.map((source) => {
-                  const favicon = getFaviconUrl(source.url);
-                  return (
-                    <SidebarMenuItem key={source.id}>
-                      <div className="flex items-center group/item">
-                        <SidebarMenuButton 
-                          className="h-10 rounded-xl flex-1 hover:bg-white/5"
-                          isActive={selectedSourceName === source.name}
-                          onClick={() => onSelectSource(source)}
-                          tooltip={source.name}
-                        >
-                          <div className="w-6 h-6 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center border border-white/5">
-                            {favicon ? (
-                              <img src={favicon} alt="" className="w-4 h-4 object-contain" />
-                            ) : (
-                              <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <span className="truncate text-xs font-medium group-data-[collapsible=icon]:hidden">{source.name}</span>
-                        </SidebarMenuButton>
-                        
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (onDeleteSource) onDeleteSource(source.id);
-                          }}
-                          className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all group-data-[collapsible=icon]:hidden"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
+            <SidebarMenu>
+              {customSources.map((source) => (
+                <SidebarMenuItem key={source.id} className="group/item flex items-center">
+                  <SidebarMenuButton 
+                    className="h-10 rounded-xl flex-1"
+                    isActive={selectedSourceName === source.name}
+                    onClick={() => onSelectSource(source)}
+                    tooltip={source.name}
+                  >
+                    <SourceIcon url={source.url} name={source.name} isActive={selectedSourceName === source.name} />
+                    <span className="truncate text-xs font-medium group-data-[collapsible=icon]:hidden">{source.name}</span>
+                  </SidebarMenuButton>
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onDeleteSource) onDeleteSource(source.id);
+                    }}
+                    className="opacity-0 group-hover/item:opacity-100 p-2 hover:text-destructive transition-all group-data-[collapsible=icon]:hidden shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
           </SidebarGroup>
         )}
 
-        <SidebarSeparator className="mx-6 my-4 bg-white/5 group-data-[collapsible=icon]:mx-2" />
+        <SidebarSeparator className="mx-4 my-2 bg-white/5" />
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-6 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 group-data-[collapsible=icon]:hidden">
+          <SidebarGroupLabel className="px-4 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-2 group-data-[collapsible=icon]:hidden">
             サポート
           </SidebarGroupLabel>
-          <SidebarMenu className="px-3 group-data-[collapsible=icon]:px-1">
+          <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="利用規約">
-                <Link href="/terms" className="h-10 rounded-xl">
+                <Link href="/terms" className="h-10">
                   <FileText className="w-4 h-4 shrink-0" />
                   <span className="text-xs group-data-[collapsible=icon]:hidden">利用規約</span>
                 </Link>
@@ -251,7 +235,7 @@ export function DashboardSidebar({
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip="プライバシー">
-                <Link href="/privacy" className="h-10 rounded-xl">
+                <Link href="/privacy" className="h-10">
                   <Lock className="w-4 h-4 shrink-0" />
                   <span className="text-xs group-data-[collapsible=icon]:hidden">プライバシー</span>
                 </Link>
@@ -261,15 +245,11 @@ export function DashboardSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-6 border-t border-white/5 group-data-[collapsible=icon]:p-2">
+      <SidebarFooter className="p-4 border-t border-white/5 group-data-[collapsible=icon]:p-2">
         <div className="flex flex-col items-center justify-center gap-1 group-data-[collapsible=icon]:hidden">
           <p className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">
             FLASHBOARD v1.0
           </p>
-          <div className="flex gap-4">
-            <Link href="/terms" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">規約</Link>
-            <Link href="/privacy" className="text-[8px] font-bold text-muted-foreground/40 hover:text-primary">プライバシー</Link>
-          </div>
         </div>
         <div className="hidden group-data-[collapsible=icon]:flex items-center justify-center">
           <Zap className="w-4 h-4 text-primary/40" />

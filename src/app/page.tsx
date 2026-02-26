@@ -123,7 +123,7 @@ export default function Home() {
     });
   }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
-  // Loading state helper to prevent "No Articles" flash
+  // ロード中フラッシュ防止
   const isInitialLoading = articlesLoading && normalizedArticles.length === 0;
 
   const handleRefresh = async () => {
@@ -151,11 +151,19 @@ export default function Home() {
   };
 
   const handleSourceSelect = (source: FeedSource | 'All') => {
-    // すでに選択されているソースをクリックした場合、または 'All' をクリックした場合はリセット
-    if (source === 'All' || (source !== 'All' && selectedSourceName === source.name)) {
+    // トグル動作: すでに選択されているソースをクリックした場合は解除
+    if (source === 'All') {
+      setActiveCategory('All');
+      setSelectedSourceName(null);
+    } else if (source.id === 'bookmarks') {
+      setActiveCategory('Bookmarks');
+      setSelectedSourceName(null);
+    } else if (selectedSourceName === source.name) {
+      // 選択解除
       setActiveCategory('All');
       setSelectedSourceName(null);
     } else {
+      // 新規選択
       setActiveCategory(source.category);
       setSelectedSourceName(source.name);
     }
