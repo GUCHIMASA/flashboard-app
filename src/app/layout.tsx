@@ -3,6 +3,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
   title: 'Flashboard | インテリジェントAIダッシュボード',
@@ -29,8 +30,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FirebaseClientProvider>
-            {children}
-            <Toaster />
+            <SidebarProvider defaultOpen={false}>
+              {children}
+              <Toaster />
+            </SidebarProvider>
           </FirebaseClientProvider>
         </ThemeProvider>
       </body>
