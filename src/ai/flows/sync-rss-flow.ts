@@ -1,8 +1,5 @@
 
 'use server';
-/**
- * @fileOverview RSSフィードを同期し、統一された要約フローを使用してFirestoreに保存するフロー。
- */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
@@ -11,21 +8,19 @@ import { initializeFirebase } from '@/firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
 
-// 管理者のメールアドレス
-const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
-
 const parser = new Parser({
   customFields: {
     item: [
       ['media:content', 'mediaContent', { keepArray: true }],
       ['media:thumbnail', 'mediaThumbnail'],
+      ['content:encoded', 'contentEncoded'],
+      ['enclosure', 'enclosure'],
     ],
   },
   headers: {
     'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   },
-  timeout: 15000,
 });
 
 const SyncRssInputSchema = z.object({
@@ -34,7 +29,7 @@ const SyncRssInputSchema = z.object({
     url: z.string(),
     category: z.string()
   })),
-  requesterEmail: z.string().describe('リクエストを送信したユーザーのメールアドレス')
+  requesterEmail: z.string().optional()
 });
 
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
@@ -58,11 +53,6 @@ const syncRssFlow = ai.defineFlow(
     }),
   },
   async (input) => {
-    // 管理者チェック
-    if (input.requesterEmail !== ADMIN_EMAIL) {
-      throw new Error('管理者のみがこの記事の更新を実行できます。');
-    }
-
     const { firestore } = initializeFirebase();
     let addedCount = 0;
     let updatedCount = 0;
@@ -73,57 +63,59 @@ const syncRssFlow = ai.defineFlow(
       if (!source.url || !source.url.startsWith('http')) continue;
       
       try {
-        console.log(`[RSS Sync] Fetching: ${source.name}`);
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        // 直近3件に絞って処理
         const items = feed.items.slice(0, 3);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
-          // 画像抽出
           let extractedImageUrl = '';
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
           } else if (item.mediaContent && item.mediaContent.length > 0) {
-            extractedImageUrl = item.mediaContent[0].$.url;
-          } else if (item.mediaThumbnail && item.mediaThumbnail.$ && item.mediaThumbnail.$.url) {
-            extractedImageUrl = item.mediaThumbnail.$.url;
-          } else {
-            const content = item.content || item.description || '';
-            const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-            if (imgMatch && imgMatch[1]) extractedImageUrl = imgMatch[1];
-          }
+            const media = item.mediaContent[0];
+            extractedImageUrl = media.$?.url || media.url || '';
+          } else if (item.mediaThumbnail) {
+            extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
+          } 
 
           const articlesRef = collection(firestore, 'articles');
           const q = query(articlesRef, where('link', '==', link));
           const existingSnapshot = await getDocs(q);
 
-          const existingData = existingSnapshot.docs[0]?.data();
-          const isEnglish = (existingData?.title || '').match(/^[a-zA-Z0-9\s\p{P}]+$/u);
-          const needsProcessing = existingSnapshot.empty || !existingData?.summary || isEnglish || !existingData?.tags;
+          const existingData = existingSnapshot.empty ? null : existingSnapshot.docs[0].data();
+          const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
             try {
+              const cleanContent = (item.contentSnippet || item.content || item.description || '')
+                .replace(/<[^>]*>?/gm, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 1500);
+
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
-                content: (item.contentSnippet || item.content || '').substring(0, 1500),
+                content: cleanContent,
                 sourceName: source.name
               });
 
-              if (result && result.translatedTitle && result.summary) {
+              if (result && result.translatedTitle && result.act) {
                 const articleData = {
                   title: result.translatedTitle,
+                  translatedTitle: result.translatedTitle,
                   originalTitle: item.title,
-                  content: (item.contentSnippet || item.content || '').substring(0, 2000),
-                  summary: result.summary,
+                  content: cleanContent,
+                  act: result.act,
+                  context: result.context,
+                  effect: result.effect,
                   tags: result.tags || [],
                   link: link, 
                   sourceName: source.name,
-                  publishedAt: item.isoDate || new Date().toISOString(),
+                  publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
                   imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
                   category: source.category,
                   updatedAt: serverTimestamp()
@@ -139,11 +131,9 @@ const syncRssFlow = ai.defineFlow(
                 }
               }
             } catch (e: any) {
-              console.error(`[AI Skip] ${item.title}: AI processing failed.`, e.message);
+              console.warn(`[AI Skip] "${item.title}"`, e.message);
             }
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (e: any) {
         errors.push(`${source.name}: ${e.message}`);

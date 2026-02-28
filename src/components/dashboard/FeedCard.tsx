@@ -1,29 +1,32 @@
+
 "use client";
 
 import React, { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Share2, Bookmark, BookmarkCheck, Sparkles, ExternalLink, Globe } from 'lucide-react';
+import { Share2, Bookmark, BookmarkCheck, ExternalLink, Globe, Zap, Search, Waves } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Article } from '@/app/lib/types';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 interface FeedCardProps {
   article: Article;
+  isActive?: boolean;
 }
 
-export function FeedCard({ article }: FeedCardProps) {
+export function FeedCard({ article, isActive = false }: FeedCardProps) {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const handleBookmark = () => {
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!db || !user) {
       toast({
         variant: "destructive",
@@ -36,8 +39,11 @@ export function FeedCard({ article }: FeedCardProps) {
     addDoc(collection(db, 'users', user.uid, 'bookmarks'), {
       articleId: article.id,
       title: article.title,
+      translatedTitle: article.translatedTitle,
       content: article.content,
-      summary: article.summary,
+      act: article.act,
+      context: article.context,
+      effect: article.effect,
       url: article.link,
       sourceName: article.sourceName,
       imageUrl: article.imageUrl || '',
@@ -62,47 +68,62 @@ export function FeedCard({ article }: FeedCardProps) {
 
   const favicon = getFaviconUrl(article.link);
 
-  const categoryLabels: Record<string, string> = {
-    'Reliable': '信頼',
-    'Discovery': '発見',
-    'Custom': 'カスタム'
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/article/${article.id}`;
+    const shareText = `「${article.translatedTitle || article.title}」 #Flashboard`;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(twitterUrl, '_blank');
   };
 
+  const translateUrl = `https://translate.google.com/translate?sl=auto&tl=ja&u=${encodeURIComponent(article.link)}`;
+
   return (
-    <Card className="group relative flex flex-col h-full border-white/10 bg-background dark:bg-card shadow-2xl transition-all duration-500 overflow-hidden min-h-[420px]">
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-primary/10 transition-colors" />
-      
-      <CardHeader className="p-4 md:p-5 pb-2">
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary" className="bg-primary/10 text-primary text-[8px] md:text-[10px] uppercase font-bold border-none px-2 py-0.5 rounded-md">
-            {categoryLabels[article.category] || article.category}
-          </Badge>
-          <span className="text-[8px] md:text-[10px] font-medium text-muted-foreground/80">
-            {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
-          </span>
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-sm overflow-hidden bg-white/10 shrink-0 flex items-center justify-center border border-white/5">
+    <Card 
+      className={cn(
+        "flex flex-col w-full bg-background border-border/40 transition-all duration-300 rounded-lg overflow-hidden group cursor-pointer",
+        isActive 
+          ? "ring-2 ring-primary/40 shadow-xl z-20 opacity-100" 
+          : "opacity-70 hover:opacity-100 hover:border-border/80"
+      )}
+    >
+      <CardHeader className={cn(
+        "transition-all duration-300",
+        isActive ? "p-4 space-y-3" : "p-2 space-y-1.5"
+      )}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-4 h-4 rounded-sm overflow-hidden bg-muted flex items-center justify-center shrink-0">
               {favicon ? (
                 <img src={favicon} alt="" className="w-full h-full object-contain" />
               ) : (
-                <Globe className="w-3.5 h-3.5 text-muted-foreground/50" />
+                <Globe className="w-3.5 h-3.5 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[9px] md:text-xs font-bold text-primary/80 uppercase tracking-tighter truncate">
+            <span className="text-[10px] font-black text-primary truncate uppercase tracking-tight">
               {article.sourceName}
             </span>
           </div>
-          <h3 className="font-headline text-[13px] md:text-lg font-bold leading-tight group-hover:text-primary transition-colors line-clamp-2 md:line-clamp-none">
-            {article.title}
-          </h3>
+          <span className="text-[9px] font-medium text-muted-foreground whitespace-nowrap">
+            {formatDistanceToNow(new Date(article.publishedAt), { addSuffix: true, locale: ja })}
+          </span>
         </div>
+        
+        <h3 className={cn(
+          "font-black leading-tight transition-all duration-300",
+          isActive ? "text-lg text-primary" : "text-base text-foreground truncate"
+        )}>
+          {article.translatedTitle || article.title}
+        </h3>
 
-        {article.tags && article.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
+        {(article.tags && article.tags.length > 0) && (
+          <div className="flex flex-nowrap overflow-x-auto gap-1 py-0.5 no-scrollbar w-full">
             {article.tags.map(tag => (
-              <Badge key={tag} variant="outline" className="text-[8px] py-0 px-1.5 border-white/10 text-muted-foreground/80 font-normal">
+              <Badge 
+                key={tag} 
+                variant="outline" 
+                className="text-[9px] py-0 px-1.5 h-4 border-muted/50 text-muted-foreground bg-muted/20 shrink-0 whitespace-nowrap font-bold"
+              >
                 #{tag}
               </Badge>
             ))}
@@ -110,47 +131,66 @@ export function FeedCard({ article }: FeedCardProps) {
         )}
       </CardHeader>
       
-      <CardContent className="px-4 md:px-5 py-2 flex-grow">
-        <div className="relative bg-secondary/20 dark:bg-white/5 border border-white/10 rounded-2xl p-4 md:p-5 overflow-hidden group/summary min-h-[120px]">
-          <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/10 blur-[30px] rounded-full group-hover/summary:bg-primary/20 transition-all" />
-          
-          <div className="flex items-center gap-2 mb-2 text-primary">
-            <Sparkles className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
-            <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em]">AI 要約インサイト</span>
-          </div>
-
-          {article.summary ? (
-            <div className="text-[12px] md:text-[14px] text-foreground/90 leading-relaxed font-medium whitespace-pre-line relative z-10">
-              {article.summary}
+      <div className={cn(
+        "grid transition-all duration-300 ease-in-out",
+        isActive ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0 pointer-events-none"
+      )}>
+        <div className="overflow-hidden">
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-4 pt-2 border-t border-border/10">
+              {article.act && (
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Zap className="w-4 h-4" />
+                  </div>
+                  <p className="font-bold flex-1 text-base leading-snug">{article.act}</p>
+                </div>
+              )}
+              {article.context && (
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Search className="w-4 h-4" />
+                  </div>
+                  <p className="text-foreground/90 flex-1">{article.context}</p>
+                </div>
+              )}
+              {article.effect && (
+                <div className="flex items-start gap-3 text-sm leading-relaxed">
+                  <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Waves className="w-4 h-4" />
+                  </div>
+                  <p className="text-foreground/90 flex-1">{article.effect}</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <p className="text-[10px] text-muted-foreground italic">解析中...</p>
-          )}
-        </div>
-      </CardContent>
+          </CardContent>
 
-      <CardFooter className="px-4 md:px-5 py-3 md:py-4 flex items-center justify-between border-t border-white/5">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/5">
-            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={cn("h-8 w-8 rounded-full transition-all", isBookmarked ? "text-primary bg-primary/10" : "text-muted-foreground hover:bg-white/5")}
-            onClick={handleBookmark}
-            disabled={isBookmarked}
-          >
-            {isBookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
-          </Button>
+          <CardFooter className="p-4 pt-2 flex flex-col items-stretch mt-auto border-t border-border/10">
+            <div className='flex items-center justify-between w-full gap-2'>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleBookmark} disabled={isBookmarked}>
+                  {isBookmarked ? <BookmarkCheck className="h-5 w-5 text-primary" /> : <Bookmark className="h-5 w-5" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10" onClick={handleShare}>
+                  <Share2 className="h-5 w-5" />
+                </Button>
+              </div>
+              <div className="flex-1 flex gap-2">
+                <Button asChild variant="outline" size="sm" className="flex-1 h-9 font-black text-[10px] px-2" onClick={(e) => e.stopPropagation()}>
+                  <a href={translateUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 justify-center">
+                    <Globe className="h-3.5 w-3.5" /> 翻訳
+                  </a>
+                </Button>
+                <Button asChild variant="default" size="sm" className="flex-1 h-9 font-black text-[10px] px-2" onClick={(e) => e.stopPropagation()}>
+                  <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 justify-center">
+                    元記事 <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </CardFooter>
         </div>
-        <Button asChild variant="link" size="sm" className="text-[10px] md:text-xs font-bold text-primary p-0 h-auto hover:no-underline group/link">
-          <a href={article.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
-            全文を読む
-            <ExternalLink className="h-3 w-3 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform" />
-          </a>
-        </Button>
-      </CardFooter>
+      </div>
     </Card>
   );
 }

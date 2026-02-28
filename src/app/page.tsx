@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Bookmark, ArrowRight, Calendar, Info, Database, Tag as TagIcon, X, Zap } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Bookmark, Calendar, Info, Filter, ChevronRight } from 'lucide-react';
 import { DashboardSidebar } from '@/components/dashboard/Sidebar';
 import { FeedCard } from '@/components/dashboard/FeedCard';
 import { AddSourceDialog } from '@/components/dashboard/AddSourceDialog';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { INITIAL_SOURCES } from './lib/mock-data';
 import { Article, Category, FeedSource } from './lib/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, serverTimestamp, query, limit, orderBy } from 'firebase/firestore';
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from '@/components/ui/carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Image from 'next/image';
@@ -19,17 +18,10 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { syncRss } from '@/ai/flows/sync-rss-flow';
 import Header from '@/components/header';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-// 管理者のメールアドレス
 const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
-
-const AVAILABLE_TAGS = [
-  "新モデル", "ツール", "研究・論文", "ビジネス", "規制・政策", "セキュリティ",
-  "OpenAI", "Anthropic", "Google", "Meta", "Microsoft", "その他企業",
-  "新リリース", "資金調達", "提携", "障害"
-];
 
 export default function Home() {
   const { user } = useUser();
@@ -45,31 +37,7 @@ export default function Home() {
   
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [activeCardId, setActiveCardId] = useState<string | null>(null);
-
-  // Intersection Observer for mobile stacking focus
-  const observer = useRef<IntersectionObserver | null>(null);
-
-  useEffect(() => {
-    observer.current = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
-          const id = entry.target.getAttribute('data-article-id');
-          setActiveCardId(id);
-        }
-      });
-    }, { 
-      threshold: 0.6, 
-      rootMargin: '-20% 0px -20% 0px' 
-    });
-
-    return () => observer.current?.disconnect();
-  }, []);
-
-  // 管理者判定
-  const isAdmin = useMemo(() => {
-    return user && user.email === ADMIN_EMAIL;
-  }, [user]);
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
 
   const sourcesQuery = useMemoFirebase(() => {
     if (!db || !user) return null;
@@ -89,32 +57,13 @@ export default function Home() {
 
   const articlesQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'articles'), limit(100));
+    return query(collection(db, 'articles'), orderBy('publishedAt', 'desc'), limit(100));
   }, [db]);
-  const { data: firestoreArticles, loading: articlesLoading } = useCollection(articlesQuery);
-
-  const bookmarksQuery = useMemoFirebase(() => {
-    if (!db || !user) return null;
-    return collection(db, 'users', user.uid, 'bookmarks');
-  }, [db, user]);
-  const { data: bookmarkedItems } = useCollection(bookmarksQuery);
-
-  const bookmarkedArticles: Article[] = (bookmarkedItems || []).map((b: any) => ({
-    id: b.id,
-    title: b.title || '無題',
-    content: b.content || '',
-    summary: b.summary,
-    sourceName: b.sourceName || '不明',
-    sourceUrl: '#',
-    publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Bookmarks', 
-    link: b.link || b.url || '#',
-    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
-    tags: b.tags || []
-  }));
+  const { data: firestoreArticles, isLoading: articlesLoading } = useCollection(articlesQuery);
 
   const normalizedArticles = useMemo(() => {
-    return ((firestoreArticles as any[]) || []).map(a => {
+    if (!firestoreArticles) return [];
+    return (firestoreArticles as any[]).map(a => {
       let dateStr = a.publishedAt;
       if (!dateStr && a.createdAt?.toDate) {
         dateStr = a.createdAt.toDate().toISOString();
@@ -135,18 +84,40 @@ export default function Home() {
     });
   }, [firestoreArticles]);
 
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    normalizedArticles.forEach(a => {
+      a.tags?.forEach(t => tags.add(t));
+    });
+    return Array.from(tags).sort();
+  }, [normalizedArticles]);
+
+  const bookmarkedItemsQuery = useMemoFirebase(() => {
+    if (!db || !user) return null;
+    return collection(db, 'users', user.uid, 'bookmarks');
+  }, [db, user]);
+  const { data: bookmarkedItems } = useCollection(bookmarkedItemsQuery);
+
+  const bookmarkedArticles: Article[] = (bookmarkedItems || []).map((b: any) => ({
+    id: b.id,
+    title: b.title || '無題',
+    translatedTitle: b.translatedTitle,
+    content: b.content || '',
+    act: b.act,
+    context: b.context,
+    effect: b.effect,
+    sourceName: b.sourceName || '不明',
+    publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+    category: 'Bookmarks', 
+    link: b.link || b.url || '#',
+    imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
+    tags: b.tags || []
+  }));
+
   const displayArticles = activeCategory === 'Bookmarks' ? bookmarkedArticles : normalizedArticles;
 
-  const sortedArticles = useMemo(() => {
-    return [...displayArticles].sort((a, b) => {
-      const dateA = new Date(a.publishedAt).getTime();
-      const dateB = new Date(b.publishedAt).getTime();
-      return (dateB || 0) - (dateA || 0);
-    });
-  }, [displayArticles]);
-
   const filteredArticles = useMemo(() => {
-    return sortedArticles.filter(a => {
+    return displayArticles.filter(a => {
       if (activeCategory !== 'All' && activeCategory !== 'Bookmarks') {
         if (a.category?.toLowerCase() !== activeCategory.toLowerCase()) return false;
       }
@@ -156,26 +127,24 @@ export default function Home() {
       if (searchQuery && !searchTarget.includes(searchQuery.toLowerCase())) return false;
       return true;
     });
-  }, [sortedArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
+  }, [displayArticles, activeCategory, selectedSourceName, selectedTag, searchQuery]);
 
-  const heroArticles = useMemo(() => {
-    return sortedArticles.slice(0, 5);
-  }, [sortedArticles]);
+  const isInitialLoading = articlesLoading || !db;
 
   const handleRefresh = async () => {
-    if (isRefreshing || !isAdmin) return;
+    if (isRefreshing) return;
+    if (user?.email !== ADMIN_EMAIL) {
+      toast({ variant: "destructive", title: "権限エラー", description: "管理者のみ実行可能です。" });
+      return;
+    }
     setIsRefreshing(true);
-    toast({ title: "同期を開始しました", description: "AIが最新情報を翻訳・要約・タグ付け中..." });
-
+    toast({ title: "同期を開始しました", description: "最新情報を処理中..." });
     try {
       const result = await syncRss({ 
         sources: allSources,
         requesterEmail: user?.email || ''
       });
-      toast({ 
-        title: result.addedCount > 0 || result.updatedCount > 0 ? "同期完了" : "更新なし", 
-        description: `${result.addedCount + result.updatedCount}件の記事を処理しました。` 
-      });
+      toast({ title: "同期完了", description: `${result.addedCount + result.updatedCount}件処理しました。` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "同期エラー", description: error.message });
     } finally {
@@ -187,6 +156,12 @@ export default function Home() {
     if (source === 'All') {
       setActiveCategory('All');
       setSelectedSourceName(null);
+    } else if (source.id === 'bookmarks') {
+      setActiveCategory('Bookmarks');
+      setSelectedSourceName(null);
+    } else if (selectedSourceName === source.name) {
+      setActiveCategory('All');
+      setSelectedSourceName(null);
     } else {
       setActiveCategory(source.category);
       setSelectedSourceName(source.name);
@@ -194,7 +169,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden">
+    <div className="flex h-screen w-full bg-background overflow-hidden">
       <DashboardSidebar 
         activeCategory={activeCategory as any} 
         selectedSourceName={selectedSourceName}
@@ -205,43 +180,45 @@ export default function Home() {
           }
         }}
         sources={allSources}
-        onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" })}
+        onAddSource={() => user ? setIsAddSourceOpen(true) : toast({ variant: "destructive", title: "ログインが必要です" })}
+        articleCount={normalizedArticles.length}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
+        isAdmin={user?.email === ADMIN_EMAIL}
       />
 
-      <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        <div className="flex-1 p-4 md:p-10 space-y-10 max-w-full md:max-w-[1800px] mx-auto w-full overflow-x-hidden">
-          {activeCategory === 'All' && !selectedSourceName && !selectedTag && heroArticles.length > 0 && (
-            <section className="relative overflow-hidden rounded-[2.5rem]">
+        
+        <main className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar bg-background">
+          {/* ヒーローエリア */}
+          {!isInitialLoading && filteredArticles.length > 0 ? (
+            <section className="relative w-full border-b border-white/5">
               <Carousel className="w-full" opts={{ loop: true }} plugins={[autoplay.current]} setApi={setApi}>
                 <CarouselContent>
-                  {heroArticles.map((article) => (
+                  {filteredArticles.slice(0, 5).map((article) => (
                     <CarouselItem key={article.id}>
-                      <div className="relative h-[350px] md:h-[550px] w-full overflow-hidden rounded-[2.5rem] shadow-2xl group">
+                      <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden">
                         <Image 
                           src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
                           alt={article.title}
                           fill
-                          className="object-cover transition-transform duration-[10s] group-hover:scale-110"
+                          className="object-cover"
                           priority
+                          sizes="100vw"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-                        <div className="absolute bottom-0 left-0 p-6 md:p-16 w-full max-w-4xl">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-transparent" />
+                        <div className="absolute bottom-0 left-0 p-8 md:p-16 w-full max-w-[1600px] mx-auto right-0">
                           <div className="flex items-center gap-3 mb-4">
-                            <Badge className="bg-primary/20 backdrop-blur-md text-primary-foreground border-primary/30 py-1 px-3">
-                              {article.sourceName}
-                            </Badge>
-                            <span className="text-xs font-bold text-white/70 flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {format(new Date(article.publishedAt), 'MM/dd HH:mm')}
+                            <Badge className="bg-primary border-none text-[10px] md:text-xs h-6 md:h-7 px-4 rounded-full font-black uppercase">{article.sourceName}</Badge>
+                            <span className="text-xs md:text-sm text-white/70 font-black flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              {format(new Date(article.publishedAt), 'yyyy/MM/dd HH:mm')}
                             </span>
                           </div>
-                          <h1 className="font-headline text-xl md:text-5xl font-black mb-6 tracking-tighter leading-tight text-white drop-shadow-lg line-clamp-2 md:line-clamp-none">
-                            {article.title}
+                          <h1 className="text-2xl md:text-5xl font-black mb-4 text-white line-clamp-2 leading-tight tracking-tighter uppercase">
+                            {article.translatedTitle || article.title}
                           </h1>
-                          <Button asChild className="rounded-full px-8 md:px-10 h-12 md:h-14 font-black text-sm md:text-lg neo-blur">
-                            <a href={article.link} target="_blank" rel="noopener noreferrer">全文を読む <ArrowRight className="ml-2 w-4 h-4 md:w-5 md:h-5" /></a>
-                          </Button>
                         </div>
                       </div>
                     </CarouselItem>
@@ -249,141 +226,106 @@ export default function Home() {
                 </CarouselContent>
               </Carousel>
             </section>
-          )}
+          ) : isInitialLoading ? (
+            <section className="relative w-full h-[300px] md:h-[500px] bg-muted animate-pulse border-b border-white/5" />
+          ) : null}
 
-          <section className="w-full">
-            <div className="mb-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-                <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v)} className="bg-secondary/30 p-1 rounded-full border border-border shrink-0 inline-flex">
-                  <TabsList className="bg-transparent h-10">
-                    <TabsTrigger value="All" className="rounded-full px-6 data-[state=active]:bg-primary">すべて</TabsTrigger>
-                    <TabsTrigger value="Reliable" className="rounded-full px-6 data-[state=active]:bg-primary whitespace-nowrap">信頼ソース</TabsTrigger>
-                    <TabsTrigger value="Discovery" className="rounded-full px-6 data-[state=active]:bg-primary">発見</TabsTrigger>
-                    <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary"><Bookmark className="w-4 h-4" /></TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-              
-              <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                <div className="flex items-center gap-2 bg-secondary/20 px-4 py-2 rounded-full border border-border/50 text-[10px] font-black text-muted-foreground whitespace-nowrap">
-                  <Database className="w-3 h-3 text-primary" />
-                  {filteredArticles.length} / {normalizedArticles.length}
-                </div>
-                {isAdmin && (
-                  <Button variant="outline" size="sm" className="rounded-full h-9 px-4 font-bold border-primary/30 hover:bg-primary/10 whitespace-nowrap" onClick={handleRefresh} disabled={isRefreshing}>
-                    {isRefreshing ? "AI同期中..." : "AI同期"}
-                  </Button>
-                )}
-              </div>
-            </div>
+          {/* スティッキーフィルターバー - main 要素内で top-0 に固定 */}
+          <section className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl border-b border-white/10 w-full shadow-sm">
+            <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3 flex flex-wrap items-center gap-4">
+              <Tabs value={activeCategory} onValueChange={(v) => { setActiveCategory(v); setSelectedTag(null); }} className="bg-muted/50 p-1 rounded-full border border-white/5">
+                <TabsList className="bg-transparent h-8">
+                  <TabsTrigger value="All" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">すべて</TabsTrigger>
+                  <TabsTrigger value="Reliable" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">信頼</TabsTrigger>
+                  <TabsTrigger value="Discovery" className="rounded-full px-5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary">発見</TabsTrigger>
+                  <TabsTrigger value="Bookmarks" className="rounded-full px-4 data-[state=active]:bg-primary">
+                    <Bookmark className="w-3.5 h-3.5" />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-            <div className="mb-8 flex items-center gap-3 w-full">
-              <div className="flex items-center gap-2 text-muted-foreground shrink-0">
-                <TagIcon className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">タグ絞り込み:</span>
-              </div>
-              <ScrollArea className="w-full whitespace-nowrap">
-                <div className="flex gap-2 pb-2">
-                  {selectedTag && (
-                    <Badge 
-                      variant="default" 
-                      className="cursor-pointer px-4 py-1.5 rounded-full bg-primary flex items-center gap-2"
-                      onClick={() => setSelectedTag(null)}
-                    >
-                      #{selectedTag} <X className="w-3 h-3" />
+              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar flex-1">
+                {(selectedSourceName || selectedTag) && (
+                  <>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <Badge variant="outline" className="rounded-full border-primary/30 bg-primary/10 text-primary text-[10px] font-black h-8 px-4 flex items-center gap-2 shrink-0">
+                      <Filter className="w-3.5 h-3.5" />
+                      {selectedSourceName || selectedTag}
                     </Badge>
-                  )}
-                  {AVAILABLE_TAGS.filter(t => t !== selectedTag).map(tag => (
+                  </>
+                )}
+                
+                <div className="h-6 w-px bg-white/10 mx-2 shrink-0 hidden md:block" />
+
+                <div className="flex items-center gap-2">
+                  {allTags.map(tag => (
                     <Badge 
-                      key={tag} 
-                      variant="outline" 
-                      className="cursor-pointer px-4 py-1.5 rounded-full border-white/10 hover:bg-white/5 transition-colors"
-                      onClick={() => setSelectedTag(tag)}
+                      key={tag}
+                      variant={selectedTag === tag ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer rounded-full px-4 py-1 h-8 shrink-0 font-black text-[9px] uppercase tracking-[0.1em] transition-all",
+                        selectedTag === tag ? "bg-primary" : "border-white/10 hover:bg-white/10 bg-white/5"
+                      )}
+                      onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                     >
                       #{tag}
                     </Badge>
                   ))}
                 </div>
-                <ScrollBar orientation="horizontal" className="h-1.5" />
-              </ScrollArea>
+              </div>
             </div>
+          </section>
 
-            {articlesLoading && normalizedArticles.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] rounded-[2rem] bg-secondary/50 animate-pulse" />
+          {/* 記事リストエリア */}
+          <div className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+            {isInitialLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="h-72 rounded-[2rem] bg-muted animate-pulse border border-white/5" />
                 ))}
               </div>
             ) : filteredArticles.length > 0 ? (
-              <div className="flex flex-col sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative snap-y snap-mandatory">
-                {filteredArticles.map((article, index) => {
-                  const isActive = activeCardId === article.id;
-                  
-                  return (
-                    <div 
-                      key={article.id}
-                      data-article-id={article.id}
-                      ref={el => {
-                        if (el) observer.current?.observe(el);
-                      }}
-                      className={cn(
-                        "sticky top-24 sm:relative sm:top-0 transition-all duration-500 ease-out snap-center",
-                        "min-h-[400px] md:min-h-0"
-                      )}
-                      style={{ 
-                        // 下のカードを上に深く引き寄せて重ねる。
-                        // isActiveでない（下に控えている）カードは大きくマージンを下げてタイトルのみが見えるようにする
-                        marginTop: !isActive && index > 0 ? '-14rem' : '0',
-                        zIndex: index,
-                        // 中央のカードは上下に余白を持たせて読みやすくする
-                        marginBottom: isActive ? '4rem' : '1rem',
-                      }}
-                    >
-                      <div className={cn(
-                        "bg-background rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all duration-500",
-                        isActive ? "scale-100 opacity-100 ring-4 ring-primary/20" : "scale-[0.96] opacity-90 blur-[0.5px]"
-                      )}>
-                        <FeedCard article={article} />
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* スクロール末尾の余白 */}
-                <div className="h-60 sm:hidden" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredArticles.map((article) => (
+                  <div 
+                    key={article.id} 
+                    onClick={() => setActiveArticleId(activeArticleId === article.id ? null : article.id)}
+                    className="transition-all duration-300"
+                  >
+                    <FeedCard 
+                      article={article} 
+                      isActive={activeArticleId === article.id}
+                    />
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="py-20 md:py-32 text-center glass-panel rounded-[2rem] md:rounded-[3rem]">
-                <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full bg-primary/10 text-primary mb-6 animate-bounce">
-                  <Info className="w-6 h-6 md:w-8 md:h-8" />
-                </div>
-                <h3 className="text-xl md:text-2xl font-black mb-2 uppercase">
-                  該当記事なし
-                </h3>
-                <p className="text-muted-foreground text-sm max-w-xs md:max-w-md mx-auto mb-8 px-4">
-                  {selectedTag ? `タグ「#${selectedTag}」に一致する記事はありません。` : "現在の条件に一致する記事は見つかりませんでした。"}
-                </p>
-                {(selectedTag || searchQuery || activeCategory !== 'All') && (
-                  <Button variant="outline" className="rounded-full px-8" onClick={() => { setActiveCategory('All'); setSelectedTag(null); setSearchQuery(''); }}>
-                    すべての条件をクリア
-                  </Button>
-                )}
+              <div className="py-32 text-center bg-muted/10 rounded-[3rem] border border-dashed border-white/10">
+                <Info className="w-16 h-16 mx-auto text-muted-foreground/30 mb-6" />
+                <h3 className="text-2xl font-black mb-3">該当する記事はありません</h3>
+                <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest">記事が見つかりませんでした</p>
               </div>
             )}
-          </section>
-        </div>
-      </main>
+
+            <footer className="py-16 border-t border-white/5 text-center space-y-6 mt-12">
+              <div className="flex items-center justify-center gap-12">
+                <Link href="/terms" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">利用規約</Link>
+                <Link href="/privacy" className="text-xs font-black text-muted-foreground hover:text-primary transition-colors tracking-[0.2em] uppercase">プライバシー</Link>
+              </div>
+              <p className="text-[10px] font-black text-muted-foreground/20 uppercase tracking-[0.5em]">
+                © 2024 FLASHBOARD INTELLIGENCE
+              </p>
+            </footer>
+          </div>
+        </main>
+      </div>
 
       <AddSourceDialog 
         open={isAddSourceOpen} 
         onOpenChange={setIsAddSourceOpen} 
         onAdd={(s) => {
-          if (!user) {
-            toast({ variant: "destructive", title: "ログインが必要です", description: "カスタムソースを追加するにはログインしてください。" });
-            return;
-          }
-          if (db) {
-            addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
-          }
+          if (!user) return;
+          addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
         }}
       />
     </div>

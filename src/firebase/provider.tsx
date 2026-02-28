@@ -1,10 +1,11 @@
 'use client';
 
-import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
+import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect, useRef } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, collection, query, limit, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { defaultSources } from '@/lib/default-sources';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -43,7 +44,7 @@ export interface FirebaseServicesAndUser {
 }
 
 // Return type for useUser() - specific to user auth state
-export interface UserHookResult { // Renamed from UserAuthHookResult for consistency if desired, or keep as UserAuthHookResult
+export interface UserHookResult {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -67,6 +68,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     userError: null,
   });
 
+  const hasCheckedDefaultSources = useRef(false);
+
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) { // If no Auth service instance, cannot determine user state
@@ -88,6 +91,41 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     );
     return () => unsubscribe(); // Cleanup
   }, [auth]); // Depends on the auth instance
+
+  // 新規ユーザーへのデフォルトソース自動追加ロジック
+  useEffect(() => {
+    const initDefaultSources = async () => {
+      if (!userAuthState.user || !firestore || hasCheckedDefaultSources.current) return;
+
+      const userId = userAuthState.user.uid;
+      const sourcesRef = collection(firestore, 'users', userId, 'sources');
+
+      try {
+        // sourcesサブコレクションが空かどうかを確認（1件だけ取得を試みる）
+        const q = query(sourcesRef, limit(1));
+        const snapshot = await getDocs(q);
+
+        if (snapshot.empty) {
+          // 空の場合、デフォルトソースを追加
+          for (const source of defaultSources) {
+            addDoc(sourcesRef, {
+              ...source,
+              category: 'Custom',
+              createdAt: serverTimestamp(),
+            });
+          }
+        }
+        // セッション中に何度も実行されないようにフラグを立てる
+        hasCheckedDefaultSources.current = true;
+      } catch (error) {
+        console.error('Error initializing default sources:', error);
+      }
+    };
+
+    if (userAuthState.user && !userAuthState.isUserLoading) {
+      initDefaultSources();
+    }
+  }, [userAuthState.user, userAuthState.isUserLoading, firestore]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
@@ -113,7 +151,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
 /**
  * Hook to access core Firebase services and user authentication state.
- * Throws error if core services are not available or used outside provider.
  */
 export const useFirebase = (): FirebaseServicesAndUser => {
   const context = useContext(FirebaseContext);
@@ -167,10 +204,9 @@ export function useMemoFirebase<T>(factory: () => T, deps: DependencyList): T | 
 
 /**
  * Hook specifically for accessing the authenticated user's state.
- * This provides the User object, loading status, and any auth errors.
  * @returns {UserHookResult} Object with user, isUserLoading, userError.
  */
-export const useUser = (): UserHookResult => { // Renamed from useAuthUser
-  const { user, isUserLoading, userError } = useFirebase(); // Leverages the main hook
+export const useUser = (): UserHookResult => {
+  const { user, isUserLoading, userError } = useFirebase();
   return { user, isUserLoading, userError };
 };

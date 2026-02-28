@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview 記事のタイトル翻訳、要約、およびタグ付与を統合的に行うAIフロー。
@@ -17,9 +16,11 @@ const SummarizeAggregatedArticleContentInputSchema = z.object({
 export type SummarizeAggregatedArticleContentInput = z.infer<typeof SummarizeAggregatedArticleContentInputSchema>;
 
 const SummarizeAggregatedArticleContentOutputSchema = z.object({
-  translatedTitle: z.string().describe('魅力的で自然な日本語に翻訳されたタイトル'),
-  summary: z.string().describe('記事の要点を3つ（・）で簡潔にまとめた日本語要約'),
-  tags: z.array(z.string()).describe('指定されたリストから選択されたタグ（1〜4個）'),
+  translatedTitle: z.string().describe('キャッチーな日本語タイトル'),
+  act: z.string().describe('ACT - 何が起きたかの詳細'),
+  context: z.string().describe('CONTEXT - なぜ重要か'),
+  effect: z.string().describe('EFFECT - 何が変わるか'),
+  tags: z.array(z.string()).describe('既存のタグ（変更なし）'),
 });
 export type SummarizeAggregatedArticleContentOutput = z.infer<typeof SummarizeAggregatedArticleContentOutputSchema>;
 
@@ -45,11 +46,17 @@ const summarizePrompt = ai.definePrompt({
   prompt: `あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
 
 指示：
-1. [translatedTitle]: 元のタイトルを、日本のテックメディアのような自然な日本語に翻訳・リライトしてください。
-2. [summary]: 記事の最も重要なポイントを3つ抽出し、「・」から始まる箇条書きの日本語で、合計50文字程度で簡潔にまとめてください。
-3. [tags]: 以下の固定タグリストの中から、記事に該当するものを1〜4個選んでください。自由なタグ生成は禁止です。
+1. [translatedTitle]: 日本のテックメディアの見出しのように、思わず読みたくなる短い一文を作成してください。固有名詞・数字を積極的に使い、20文字以内を目安にしてください。
+2. [act]: タイトルの補足として、出来事の具体的な内容を説明してください。固有名詞・数字・日付を優先して使い、1〜2文、40文字程度でまとめてください。
+3. [context]: 業界・社会的な背景や意味を簡潔にまとめてください。2〜3文、60文字程度でまとめてください。
+4. [effect]: この出来事によって今後何が変わるかを簡潔にまとめてください。1〜2文、40文字程度でまとめてください。
+5. [tags]: 以下の固定タグリストの中から、記事に該当するものを1〜4個選んでください。自由なタグ生成は禁止です。
 
-タグリスト：
+注意：
+各項目（act, context, effect）のテキスト冒頭に「▲」「●」「■」などの記号を絶対に入れないでください。純粋なテキストのみを出力してください。
+「ですます口調」は使わず簡潔にまとめ、情報量を多めに含めることを心がけてください。
+
+固定タグリスト：
 【内容系】新モデル, ツール, 研究・論文, ビジネス, 規制・政策, セキュリティ
 【企業系】OpenAI, Anthropic, Google, Meta, Microsoft, その他企業
 【動き系】新リリース, 資金調達, 提携, 障害

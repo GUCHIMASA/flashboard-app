@@ -1,10 +1,7 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * AI Synapse Security Rules
-     */
 
     function isSignedIn() {
       return request.auth != null;
@@ -14,7 +11,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // ユーザープロファイルとその配下のデータ（ソース、ブックマーク）
+    match /articles/{articleId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
     match /users/{userId} {
       allow read, write: if isOwner(userId);
       
@@ -26,22 +27,9 @@ service cloud.firestore {
         allow read, write: if isOwner(userId);
       }
 
-      // サブコレクション全体への再帰的な許可
       match /{allPaths=**} {
         allow read, write: if isOwner(userId);
       }
-    }
-
-    // 収集された記事データ
-    match /articles/{articleId} {
-      // 誰でも閲覧可能（一覧取得 list も個別取得 get も許可）
-      allow read: if true;
-      
-      // 書き込み（同期処理）は認証済みユーザーのみ
-      allow create, update: if isSignedIn();
-      
-      // 削除は管理者のみ（必要に応じて調整）
-      allow delete: if isSignedIn();
     }
   }
 }
