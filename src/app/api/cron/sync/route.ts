@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const ADMIN_EMAIL = 'kawa_guchi_masa_hiro@yahoo.co.jp';
+    const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? '';
 
     const result = await syncRss({
       sources: INITIAL_SOURCES.map(s => ({

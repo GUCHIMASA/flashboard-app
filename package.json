@@ -9,7 +9,8 @@
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:sync": "tsx scripts/test-sync.ts"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.28.0",
@@ -42,6 +43,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "firebase": "^11.9.1",
+    "firebase-admin": "^13.6.0",
     "genkit": "^1.28.0",
     "lucide-react": "^0.475.0",
     "next": "15.5.9",
@@ -63,6 +65,7 @@
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "genkit-cli": "^1.28.0",
+    "tsx": "^4.19.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

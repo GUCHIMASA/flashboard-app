@@ -12,11 +12,11 @@ export interface DefaultSource {
 export const defaultSources: DefaultSource[] = [
   {
     name: "Anthropic News",
-    url: "https://www.anthropic.com/index.xml",
+    url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/refs/heads/main/feeds/feed_anthropic.xml",
   },
   {
-    name: "Meta AI Blog",
-    url: "https://ai.meta.com/blog/rss/",
+    name: "Meta Engineering (AI)",
+    url: "https://engineering.fb.com/tag/ai/feed/",
   },
   {
     name: "OpenAI Blog",

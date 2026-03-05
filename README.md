@@ -149,6 +149,8 @@ Firestoreへ保存
 Firebase App Hosting にて以下を設定：
 
 CRON_SECRET=任意のランダム文字列
+GEMINI_API_KEY=Google AI Studio で発行した API キー（記事要約に必須）
+ADMIN_EMAIL=管理者のメールアドレス（任意・管理者機能・手動同期ボタン表示に使用）
 
 ② Cloud Scheduler設定
 
@@ -206,6 +208,23 @@ if (user?.email === ADMIN_EMAIL) {
 
 npm install
 npm run dev
+
+**同期の稼働テスト（Cron と同じ処理をローカルで実行）**
+
+```bash
+npm run test:sync
+```
+
+`.env.local` に `NEXT_PUBLIC_FIREBASE_*` と `GEMINI_API_KEY` を設定した状態で実行すると、RSS 取得〜要約〜Firestore 保存まで一通り動きます。結果（追加件数・更新件数・RSS エラー・AI エラー）がターミナルに表示されます。
+
+ローカルで Firestore へ書き込むには、Admin SDK の認証が必要です（Firestore ルールで弾かれないため）。
+
+- `FIREBASE_SERVICE_ACCOUNT_KEY`（サービスアカウントJSONを文字列で入れる）または
+- `GOOGLE_APPLICATION_CREDENTIALS`（サービスアカウントJSONファイルへのパス）
+
+を設定してください。
+
+また、Gemini 側で `403 Forbidden`（`Generative Language API has not been used...`）が出る場合は、エラー文に出てくるリンクから対象プロジェクトで `Generative Language API` を有効化し、数分待ってから再実行してください。
 
 🧠 設計思想（重要）
 

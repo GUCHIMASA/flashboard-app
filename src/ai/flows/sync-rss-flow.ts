@@ -4,8 +4,8 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import Parser from 'rss-parser';
-import { initializeFirebase } from '@/firebase';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { initializeFirebaseAdmin } from '@/firebase/admin';
+import { FieldValue } from 'firebase-admin/firestore';
 import { summarizeAggregatedArticleContent } from './summarize-aggregated-article-content-flow';
 
 const parser = new Parser({
@@ -49,14 +49,16 @@ const syncRssFlow = ai.defineFlow(
       addedCount: z.number(),
       updatedCount: z.number(),
       errors: z.array(z.string()),
+      aiErrors: z.array(z.string()),
       processedSources: z.number()
     }),
   },
   async (input) => {
-    const { firestore } = initializeFirebase();
+    const { firestore } = initializeFirebaseAdmin();
     let addedCount = 0;
     let updatedCount = 0;
     const errors: string[] = [];
+    const aiErrors: string[] = [];
     let processedSources = 0;
 
     for (const source of input.sources) {
@@ -66,7 +68,7 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        const items = feed.items.slice(0, 3);
+        const items = feed.items.slice(0, 10);
 
         for (const item of items) {
           const link = item.link || item.guid || '';
@@ -82,21 +84,36 @@ const syncRssFlow = ai.defineFlow(
             extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
           } 
 
-          const articlesRef = collection(firestore, 'articles');
-          const q = query(articlesRef, where('link', '==', link));
-          const existingSnapshot = await getDocs(q);
+          const articlesRef = firestore.collection('articles');
+          const existingSnapshot = await articlesRef.where('link', '==', link).limit(1).get();
 
           const existingData = existingSnapshot.empty ? null : existingSnapshot.docs[0].data();
+          const existingId = existingSnapshot.empty ? null : existingSnapshot.docs[0].id;
           const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
-            try {
-              const cleanContent = (item.contentSnippet || item.content || item.description || '')
-                .replace(/<[^>]*>?/gm, '')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .substring(0, 1500);
+            const rawContent = (item.contentEncoded ?? item.contentSnippet ?? item.content ?? item.description ?? '');
+            const cleanContent = (typeof rawContent === 'string' ? rawContent : '')
+              .replace(/<[^>]*>?/gm, '')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .substring(0, 1500);
 
+            const fallbackArticleData = {
+              title: item.title,
+              originalTitle: item.title,
+              content: cleanContent,
+              link: link,
+              sourceName: source.name,
+              publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
+              imageUrl:
+                extractedImageUrl ||
+                `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0, 10))}/800/400`,
+              category: source.category,
+              updatedAt: FieldValue.serverTimestamp(),
+            };
+
+            try {
               const result = await summarizeAggregatedArticleContent({
                 title: item.title,
                 content: cleanContent,
@@ -118,20 +135,34 @@ const syncRssFlow = ai.defineFlow(
                   publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
                   imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
                   category: source.category,
-                  updatedAt: serverTimestamp()
+                  updatedAt: FieldValue.serverTimestamp(),
                 };
 
                 if (existingSnapshot.empty) {
-                  await addDoc(articlesRef, { ...articleData, createdAt: serverTimestamp() });
+                  await articlesRef.add({ ...articleData, createdAt: FieldValue.serverTimestamp() });
                   addedCount++;
                 } else {
-                  const articleDoc = doc(firestore, 'articles', existingSnapshot.docs[0].id);
-                  await updateDoc(articleDoc, articleData);
+                  await articlesRef.doc(existingId!).set(articleData, { merge: true });
                   updatedCount++;
                 }
               }
             } catch (e: any) {
-              console.warn(`[AI Skip] "${item.title}"`, e.message);
+              const msg = `[${source.name}] "${(item.title || 'Untitled').slice(0, 40)}…": ${e.message}`;
+              console.warn('[AI Skip]', msg);
+              aiErrors.push(msg);
+
+              // AI が落ちても「記事自体」は保存して次回以降に再処理できるようにする
+              try {
+                if (existingSnapshot.empty) {
+                  await articlesRef.add({ ...fallbackArticleData, createdAt: FieldValue.serverTimestamp() });
+                  addedCount++;
+                } else {
+                  await articlesRef.doc(existingId!).set(fallbackArticleData, { merge: true });
+                  updatedCount++;
+                }
+              } catch (dbErr: any) {
+                errors.push(`${source.name}: Firestore write failed: ${dbErr.message}`);
+              }
             }
           }
         }
@@ -140,6 +171,6 @@ const syncRssFlow = ai.defineFlow(
       }
     }
 
-    return { addedCount, updatedCount, errors, processedSources };
+    return { addedCount, updatedCount, errors, aiErrors, processedSources };
   }
 );
