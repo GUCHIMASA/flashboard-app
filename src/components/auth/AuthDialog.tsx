@@ -5,10 +5,10 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogDescription
 } from '@/components/ui/dialog';
@@ -17,10 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/firebase';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signInWithPopup, 
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
   GoogleAuthProvider,
   updateProfile
 } from 'firebase/auth';
@@ -45,7 +45,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const { toast } = useToast();
-  
+
   const { register, handleSubmit, formState: { errors }, reset } = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
   });
@@ -66,34 +66,35 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       onOpenChange(false);
       reset();
     } catch (error: any) {
-      let message = "認証中にエラーが発生しました。";
-      
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          message = "このメールアドレスは既に登録されています。ログインをお試しください。";
-          break;
-        case 'auth/invalid-credential':
-          message = "メールアドレスまたはパスワードが正しくありません。入力内容を確認してください。";
-          break;
-        case 'auth/operation-not-allowed':
-          message = "現在、この認証方法は有効になっていません。管理者に連絡してください。";
-          break;
-        case 'auth/weak-password':
-          message = "パスワードが短すぎます（6文字以上必要です）。";
-          break;
-        case 'auth/user-not-found':
-          message = "アカウントが見つかりません。新規登録をお試しください。";
-          break;
-        case 'auth/wrong-password':
-          message = "パスワードが正しくありません。";
-          break;
-        default:
-          message = "エラーが発生しました。しばらく時間を置いてから再度お試しください。";
+      console.error("Auth Error:", error);
+      let message = error.message || "認証中にエラーが発生しました。";
+
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            message = "このメールアドレスは既に登録されています。ログインをお試しください。";
+            break;
+          case 'auth/invalid-credential':
+            message = "メールアドレスまたはパスワードが正しくありません。";
+            break;
+          case 'auth/operation-not-allowed':
+            message = "現在、この認証方法は有効になっていません。APIキーの制限設定を確認してください。";
+            break;
+          case 'auth/user-disabled':
+            message = "このアカウントは無効化されています。";
+            break;
+          case 'auth/user-not-found':
+            message = "アカウントが見つかりません。";
+            break;
+          case 'auth/wrong-password':
+            message = "パスワードが正しくありません。";
+            break;
+        }
       }
-      
-      toast({ 
-        variant: "destructive", 
-        title: "認証エラー", 
+
+      toast({
+        variant: "destructive",
+        title: "認証エラー",
         description: message
       });
     } finally {
@@ -110,10 +111,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
       onOpenChange(false);
     } catch (error: any) {
       if (error.code !== 'auth/popup-closed-by-user') {
-        toast({ 
-          variant: "destructive", 
-          title: "ログイン失敗", 
-          description: "Googleログイン中にエラーが発生しました。" 
+        toast({
+          variant: "destructive",
+          title: "ログイン失敗",
+          description: "Googleログイン中にエラーが発生しました。"
         });
       }
     } finally {
@@ -152,10 +153,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
               <div className="space-y-2">
                 <Label htmlFor="displayName">お名前</Label>
                 <div className="relative">
-                  <Input 
-                    id="displayName" 
-                    placeholder="山田 太郎" 
-                    {...register('displayName')} 
+                  <Input
+                    id="displayName"
+                    placeholder="山田 太郎"
+                    {...register('displayName')}
                     className="bg-secondary/30 rounded-full pl-10"
                     disabled={isLoading}
                   />
@@ -170,11 +171,11 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             <div className="space-y-2">
               <Label htmlFor="email">メールアドレス</Label>
               <div className="relative">
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@example.com" 
-                  {...register('email')} 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  {...register('email')}
                   className="bg-secondary/30 rounded-full pl-10"
                   disabled={isLoading}
                 />
@@ -188,11 +189,11 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
             <div className="space-y-2">
               <Label htmlFor="password">パスワード</Label>
               <div className="relative">
-                <Input 
-                  id="password" 
-                  type="password" 
-                  placeholder="••••••••" 
-                  {...register('password')} 
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  {...register('password')}
                   className="bg-secondary/30 rounded-full pl-10"
                   disabled={isLoading}
                 />
@@ -214,9 +215,9 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
           <div className="relative flex justify-center text-[10px] uppercase font-bold"><span className="bg-background px-2 text-muted-foreground">または</span></div>
         </div>
 
-        <Button 
-          variant="outline" 
-          onClick={handleGoogleLogin} 
+        <Button
+          variant="outline"
+          onClick={handleGoogleLogin}
           className="w-full rounded-full h-11 border-white/10 hover:bg-white/5 font-bold gap-2"
           disabled={isLoading}
         >

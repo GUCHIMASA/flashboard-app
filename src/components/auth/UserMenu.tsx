@@ -2,13 +2,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ import { AuthDialog } from './AuthDialog';
 import { useToast } from '@/hooks/use-toast';
 
 export function UserMenu() {
-  const { user, loading } = useUser();
+  const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const { toast } = useToast();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -33,14 +33,14 @@ export function UserMenu() {
     }
   };
 
-  if (loading) {
+  if (isUserLoading) {
     return <div className="w-10 h-10 rounded-full bg-secondary animate-pulse" />;
   }
 
   if (!user) {
     return (
       <>
-        <Button 
+        <Button
           onClick={() => setIsAuthOpen(true)}
           className="rounded-full px-6 font-black h-10 gap-2 neo-blur"
         >
@@ -80,7 +80,7 @@ export function UserMenu() {
           <Settings className="w-4 h-4" /> 設定
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-white/5" />
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onClick={handleLogout}
           className="rounded-lg gap-2 text-destructive focus:text-destructive cursor-pointer"
         >

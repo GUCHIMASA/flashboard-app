@@ -29,12 +29,12 @@ export default function Home() {
   const { toast } = useToast();
   const autoplay = useRef(Autoplay({ delay: 6000, stopOnInteraction: true }));
   const [api, setApi] = useState<CarouselApi>();
-  
+
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [selectedSourceName, setSelectedSourceName] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [isAddSourceOpen, setIsAddSourceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
@@ -46,7 +46,7 @@ export default function Home() {
   const { data: customSources } = useCollection(sourcesQuery);
 
   const allSources = useMemo(() => [
-    ...INITIAL_SOURCES, 
+    ...INITIAL_SOURCES,
     ...(customSources || []).map((s: any) => ({
       id: s.id,
       name: s.name,
@@ -78,7 +78,7 @@ export default function Home() {
         category: a.category || 'Reliable',
         sourceName: a.sourceName || '不明',
         publishedAt: dateStr,
-        imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0,5) || a.id)}/800/400`,
+        imageUrl: a.imageUrl || `https://picsum.photos/seed/${encodeURIComponent(a.title?.substring(0, 5) || a.id)}/800/400`,
         tags: a.tags || []
       } as Article;
     });
@@ -108,7 +108,7 @@ export default function Home() {
     effect: b.effect,
     sourceName: b.sourceName || '不明',
     publishedAt: b.bookmarkedAt?.toDate?.()?.toISOString() || new Date().toISOString(),
-    category: 'Bookmarks', 
+    category: 'Bookmarks',
     link: b.link || b.url || '#',
     imageUrl: b.imageUrl || `https://picsum.photos/seed/${b.id}/800/400`,
     tags: b.tags || []
@@ -133,14 +133,14 @@ export default function Home() {
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
-    if (user?.email !== ADMIN_EMAIL) {
+    if (user?.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       toast({ variant: "destructive", title: "権限エラー", description: "管理者のみ実行可能です。" });
       return;
     }
     setIsRefreshing(true);
     toast({ title: "同期を開始しました", description: "最新情報を処理中..." });
     try {
-      const result = await syncRss({ 
+      const result = await syncRss({
         sources: allSources,
         requesterEmail: user?.email || ''
       });
@@ -170,8 +170,8 @@ export default function Home() {
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
-      <DashboardSidebar 
-        activeCategory={activeCategory as any} 
+      <DashboardSidebar
+        activeCategory={activeCategory as any}
         selectedSourceName={selectedSourceName}
         onSelectSource={handleSourceSelect}
         onDeleteSource={(id) => {
@@ -184,12 +184,12 @@ export default function Home() {
         articleCount={normalizedArticles.length}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
-        isAdmin={user?.email === ADMIN_EMAIL}
+        isAdmin={user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()}
       />
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        
+
         <main className="flex-1 overflow-y-auto relative scroll-smooth no-scrollbar bg-background">
           {/* ヒーローエリア */}
           {!isInitialLoading && filteredArticles.length > 0 ? (
@@ -199,8 +199,8 @@ export default function Home() {
                   {filteredArticles.slice(0, 5).map((article) => (
                     <CarouselItem key={article.id}>
                       <div className="relative h-[300px] md:h-[500px] w-full overflow-hidden">
-                        <Image 
-                          src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`} 
+                        <Image
+                          src={article.imageUrl || `https://picsum.photos/seed/${article.id}/1200/800`}
                           alt={article.title}
                           fill
                           className="object-cover"
@@ -254,12 +254,12 @@ export default function Home() {
                     </Badge>
                   </>
                 )}
-                
+
                 <div className="h-6 w-px bg-white/10 mx-2 shrink-0 hidden md:block" />
 
                 <div className="flex items-center gap-2">
                   {allTags.map(tag => (
-                    <Badge 
+                    <Badge
                       key={tag}
                       variant={selectedTag === tag ? "default" : "outline"}
                       className={cn(
@@ -287,13 +287,13 @@ export default function Home() {
             ) : filteredArticles.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredArticles.map((article) => (
-                  <div 
-                    key={article.id} 
+                  <div
+                    key={article.id}
                     onClick={() => setActiveArticleId(activeArticleId === article.id ? null : article.id)}
                     className="transition-all duration-300"
                   >
-                    <FeedCard 
-                      article={article} 
+                    <FeedCard
+                      article={article}
                       isActive={activeArticleId === article.id}
                     />
                   </div>
@@ -320,9 +320,9 @@ export default function Home() {
         </main>
       </div>
 
-      <AddSourceDialog 
-        open={isAddSourceOpen} 
-        onOpenChange={setIsAddSourceOpen} 
+      <AddSourceDialog
+        open={isAddSourceOpen}
+        onOpenChange={setIsAddSourceOpen}
         onAdd={(s) => {
           if (!user) return;
           addDoc(collection(db, 'users', user.uid, 'sources'), { ...s, createdAt: serverTimestamp() });
