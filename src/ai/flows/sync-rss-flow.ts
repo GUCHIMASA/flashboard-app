@@ -68,9 +68,12 @@ const syncRssFlow = ai.defineFlow(
         const feed = await parser.parseURL(source.url);
         processedSources++;
 
-        const items = feed.items.slice(0, 10);
+        const items = feed.items.slice(0, 20);
 
         for (const item of items) {
+          // レート制限（無料枠 15RPM）回避のため、処理ごとに少し待機
+          await new Promise(resolve => setTimeout(resolve, 1500));
+
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
