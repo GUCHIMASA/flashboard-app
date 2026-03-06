@@ -63,7 +63,7 @@ const syncRssFlow = ai.defineFlow(
 
     for (const source of input.sources) {
       if (!source.url || !source.url.startsWith('http')) continue;
-      
+
       try {
         const feed = await parser.parseURL(source.url);
         processedSources++;
@@ -82,7 +82,7 @@ const syncRssFlow = ai.defineFlow(
             extractedImageUrl = media.$?.url || media.url || '';
           } else if (item.mediaThumbnail) {
             extractedImageUrl = item.mediaThumbnail.$?.url || item.mediaThumbnail.url || '';
-          } 
+          }
 
           const articlesRef = firestore.collection('articles');
           const existingSnapshot = await articlesRef.where('link', '==', link).limit(1).get();
@@ -129,11 +129,12 @@ const syncRssFlow = ai.defineFlow(
                   act: result.act,
                   context: result.context,
                   effect: result.effect,
+                  importance: result.importance || 1,
                   tags: result.tags || [],
-                  link: link, 
+                  link: link,
                   sourceName: source.name,
                   publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
-                  imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0,10))}/800/400`,
+                  imageUrl: extractedImageUrl || `https://picsum.photos/seed/${encodeURIComponent(item.title.substring(0, 10))}/800/400`,
                   category: source.category,
                   updatedAt: FieldValue.serverTimestamp(),
                 };

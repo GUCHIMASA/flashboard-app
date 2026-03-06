@@ -16,10 +16,11 @@ const SummarizeAggregatedArticleContentInputSchema = z.object({
 export type SummarizeAggregatedArticleContentInput = z.infer<typeof SummarizeAggregatedArticleContentInputSchema>;
 
 const SummarizeAggregatedArticleContentOutputSchema = z.object({
-  translatedTitle: z.string().describe('キャッチーな日本語タイトル'),
-  act: z.string().describe('ACT - 何が起きたかの詳細'),
-  context: z.string().describe('CONTEXT - なぜ重要か'),
-  effect: z.string().describe('EFFECT - 何が変わるか'),
+  translatedTitle: z.string().describe('F (Flash) - 25文字以内のキャッチーな見出し'),
+  act: z.string().describe('A (Act) - 何が起きたか（60文字以内）'),
+  context: z.string().describe('C (Context) - なぜ重要か（60文字以内）'),
+  effect: z.string().describe('E (Effect) - どんな影響を生むか（60文字以内）'),
+  importance: z.number().min(1).max(3).describe('重要度 (1:参考, 2:特定分野, 3:業界全体)'),
   tags: z.array(z.string()).describe('既存のタグ（変更なし）'),
 });
 export type SummarizeAggregatedArticleContentOutput = z.infer<typeof SummarizeAggregatedArticleContentOutputSchema>;
@@ -43,25 +44,44 @@ const summarizePrompt = ai.definePrompt({
       { category: 'HARM_CATEGORY_CIVIC_INTEGRITY', threshold: 'BLOCK_NONE' },
     ]
   },
-  prompt: `あなたは一流のテックニュース編集者です。以下の記事を日本の読者向けに最適化してください。
+  prompt: `あなたは一流のテックニュース編集者です。以下の記事を、日本の読者が「5秒で俯瞰」できる「FACE要約フォーマット」に厳格に従って最適化してください。
 
-指示：
-1. [translatedTitle]: 日本のテックメディアの見出しのように、思わず読みたくなる短い一文を作成してください。固有名詞・数字を積極的に使い、20文字以内を目安にしてください。
-2. [act]: タイトルの補足として、出来事の具体的な内容を説明してください。固有名詞・数字・日付を優先して使い、1〜2文、40文字程度でまとめてください。
-3. [context]: 業界・社会的な背景や意味を簡潔にまとめてください。2〜3文、60文字程度でまとめてください。
-4. [effect]: この出来事によって今後何が変わるかを簡潔にまとめてください。1〜2文、40文字程度でまとめてください。
-5. [tags]: 以下の固定タグリストの中から、記事に該当するものを1〜4個選んでください。自由なタグ生成は禁止です。
+--- FACE要約生成ルール ---
 
-注意：
-各項目（act, context, effect）のテキスト冒頭に「▲」「●」「■」などの記号を絶対に入れないでください。純粋なテキストのみを出力してください。
-「ですます口調」は使わず簡潔にまとめ、情報量を多めに含めることを心がけてください。
+1. [translatedTitle] (Flash):
+   - 読者が次の一行を読みたくなるキャッチーな日本語タイトル。
+   - 固有名詞・数字を優先的に含め、背景や意味は含めず事実のみを尖らせる。
+   - 制限: 25文字以内。
 
-固定タグリスト：
-【内容系】新モデル, ツール, 研究・論文, ビジネス, 規制・政策, セキュリティ
-【企業系】OpenAI, Anthropic, Google, Meta, Microsoft, その他企業
-【動き系】新リリース, 資金調達, 提携, 障害
+2. [act] (Act - 何が起きたか):
+   - 固有名詞・数字・日付のみで構成。背景・理由・影響は書かない。
+   - 「〜が〜した／発表した／リリースした」形式で完結させる。
+   - 制限: 2文以内、約60文字。
 
-※企業系タグは、記事がその企業に直接言及している場合のみ付与してください。
+3. [context] (Context - なぜ重要か):
+   - 出来事が属する業界トレンドのみを記述。Actの内容は繰り返さない。
+   - 「〜という流れの中で」「〜が課題だったが」などの形式で始める。
+   - 制限: 2文以内、約60文字。
+
+4. [effect] (Effect - どんな影響を生むか):
+   - 主語を必ず明示（開発者・企業・個人など）。
+   - 抽象表現（例：便利になる、進化する）や自明な結論は禁止。
+   - 制限: 2文以内、約60文字。
+
+5. [importance] (重要度):
+   - 3：業界全体に影響
+   - 2：特定分野に影響
+   - 1：参考情報レベル
+
+6. [tags] (タグ付け):
+   - 以下のリストから1〜4個選択（自由生成禁止、企業タグは直接関与時のみ）。
+   【内容系】新モデル / ツール / 研究・論文 / ビジネス / 規制・政策 / セキュリティ
+   【企業系】OpenAI / Anthropic / Google / Meta / Microsoft / その他企業
+   【動き系】新リリース / 資金調達 / 提携 / 障害
+
+--- 制約 ---
+- 各項目冒頭に記号（▲、●等）を絶対に入れない。
+- 「です・ます」口調は避け、体言止めや「〜だ」形式を用いるが、簡潔さを最優先する。
 
 記事タイトル: {{{title}}}
 ソース名: {{{sourceName}}}
