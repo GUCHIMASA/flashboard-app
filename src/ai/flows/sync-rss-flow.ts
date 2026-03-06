@@ -32,6 +32,41 @@ const SyncRssInputSchema = z.object({
   requesterEmail: z.string().optional()
 });
 
+/**
+ * 記事URLからOGP画像を抽出する
+ */
+async function extractOgpImage(url: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒でタイムアウト
+
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return '';
+
+    const html = await response.text();
+    // og:image メタタグを抽出する簡易正規表現
+    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i) ||
+      html.match(/<meta\s+content=["']([^"']+)["']\s+property=["']og:image["']/i);
+
+    if (ogImageMatch && ogImageMatch[1]) {
+      return ogImageMatch[1];
+    }
+
+    return '';
+  } catch (error) {
+    console.warn(`[OGP Extract Fail] ${url}:`, error);
+    return '';
+  }
+}
+
 export async function syncRss(input: z.infer<typeof SyncRssInputSchema>) {
   try {
     return await syncRssFlow(input);
@@ -71,12 +106,10 @@ const syncRssFlow = ai.defineFlow(
         const items = feed.items.slice(0, 20);
 
         for (const item of items) {
-          // レート制限（無料枠 15RPM）回避のため、処理ごとに少し待機
-          await new Promise(resolve => setTimeout(resolve, 1500));
-
           const link = item.link || item.guid || '';
           if (!link || !item.title) continue;
 
+          // 1. RSSタグから画像抽出を試みる
           let extractedImageUrl = '';
           if (item.enclosure && item.enclosure.url) {
             extractedImageUrl = item.enclosure.url;
@@ -95,6 +128,18 @@ const syncRssFlow = ai.defineFlow(
           const needsProcessing = existingSnapshot.empty || !existingData?.act;
 
           if (needsProcessing) {
+            // レート制限（無料枠 15RPM）回避のため、処理ごとに少し待機
+            // この待機時間中に OGP 画像の抽出を非同期で実行する
+            const sleepPromise = new Promise(resolve => setTimeout(resolve, 1500));
+
+            // 2. RSSになければ OGP 画像抽出を試みる
+            if (!extractedImageUrl) {
+              extractedImageUrl = await extractOgpImage(link);
+            }
+
+            // 1.5秒の待機が終わるのを待つ
+            await sleepPromise;
+
             const rawContent = (item.contentEncoded ?? item.contentSnippet ?? item.content ?? item.description ?? '');
             const cleanContent = (typeof rawContent === 'string' ? rawContent : '')
               .replace(/<[^>]*>?/gm, '')
